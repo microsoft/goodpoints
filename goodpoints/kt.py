@@ -21,7 +21,7 @@ from goodpoints.util import fprint # for printing while flushing buffer
 """
 
 
-def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, meanK=None, unique=False):
+def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, meanK=None, unique=False, verbose=False):
     """Returns kernel thinning coreset of size floor(n/2^m) as row indices into X
     
     Args:
@@ -37,17 +37,27 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
         matrix; if True, stores n x n kernel matrix
       meanK: None or array of length n with meanK[ii] = mean of swap_kernel(X[ii], X);
         used to speed up computation when not None
+      verbose: If False do not print intermediate time taken, if True print that info when m>=7
     """
     # Partition points into 2^m candidate coresets of size floor(n/2^m)
-    coresets = split(X, m, split_kernel, delta=delta, seed=seed, store_K=store_K)
-    # Select best coreset and iteratively refine
-    return(swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK,unique=unique))
+    verbose = (verbose and (m>=7))
+    
+    fprint('Running kt.split', verbose=verbose)
+    tic()
+    coresets = split(X, m, split_kernel, delta=delta, seed=seed, store_K=store_K, verbose=verbose)
+    toc(print_elapsed=verbose)
+    
+    fprint('Running kt.swap', verbose=verbose)
+    tic()
+    coresets = swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK, unique=unique)
+    toc(print_elapsed=verbose)
+    return(coresets)
 
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% KT Split Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 '''
 
-def split(X, m, kernel, delta=0.5, seed=None, store_K=False):
+def split(X, m, kernel, delta=0.5, seed=None, store_K=False, verbose=False):
     """Returns 2^m kernel thinning coresets of size floor(n/2^m) as a 2D array
     
     Args:
@@ -59,11 +69,12 @@ def split(X, m, kernel, delta=0.5, seed=None, store_K=False):
       seed: Random seed to set prior to generation; if None, no seed will be set
       store_K: If False, runs O(nd) space version which does not store kernel
         matrix; if True, stores n x n kernel matrix
+      verbose: If False, do not print intermediate time taken in thinning rounds, if True print that info
     """
-    return(split_K(X, m, kernel, delta=delta, seed=seed) if store_K
-           else split_X(X, m, kernel, delta=delta, seed=seed))
+    return(split_K(X, m, kernel, delta=delta, seed=seed, verbose=verbose) if store_K
+           else split_X(X, m, kernel, delta=delta, seed=seed, verbose=verbose))
 
-def split_X(X, m, kernel, delta=0.5, seed=None):
+def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     """Returns 2^m kernel thinning coresets of size floor(n/2^m) as a 2D array
     (uses O(nd) space, memory efficient for small d; slower in computation time
     compared to split_K,
@@ -76,8 +87,10 @@ def split_X(X, m, kernel, delta=0.5, seed=None):
         kernel(y,X) returns array of kernel evaluations between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None, no seed will be set
+      verbose: If False do not print intermediate time taken, if True print that info
     """
     # Function which returns kernel value for two arrays of row indices of X
+    verbose = verbose and (m>=7)
     def k(ii, jj):
         return(kernel(X[ii], X[jj]))
     
@@ -113,19 +126,17 @@ def split_X(X, m, kernel, delta=0.5, seed=None):
     # Store kernel(xi, xi) for each point i
     diagK = np.empty(n)
         
-    # Track progress when m is large
+    # If verbose---Track the time taken if m is large
     # Output timing when sample size doubles til n/2, and then every n/8 sample points
-    sample_wise_tictoc = False
     nidx = 1
-    if m >= 6:
-        sample_wise_tictoc = True
-        tic()
+    tic()
     for i in range(n):
         # Track progress
-        if (i==nidx) and sample_wise_tictoc:
-            fprint(f"special tracking update: Finished processing sample number {nidx}/{n}")
-            toc()
+        if i==nidx:
+            fprint(f"Tracking update: Finished processing sample number {nidx}/{n}", verbose=verbose)
+            toc(print_elapsed=verbose)
             tic()
+            
             if nidx<int(n/2):
                 nidx *= 2
             else:
@@ -221,7 +232,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None):
     # Return coresets of size floor(n/2^m)
     return(coresets[m])
 
-def split_K(X, m, kernel, c=None, delta=0.5, seed=None):
+def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
     """Returns 2^m kernel thinning coresets of size floor(n/2^m) as a 2D array
     (uses O(n^2) space, faster in computation time compared to split_X,
     should be preferred for small n or when d > n)
@@ -234,6 +245,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None):
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None,
         no seed will be set
+      verbose: If False do not print intermediate time taken, if True print that info
     """
     # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
@@ -273,18 +285,15 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None):
     # Store kernel(xi, xi) for each point i
     diagK = np.empty(n)
     
-    # Track progress when m is large
+    # If verbose---Track the time taken
     # Output timing when sample size doubles til n/2, and then every n/8 sample points
-    sample_wise_tictoc = False
     nidx = 1
-    if m >= 6:
-        sample_wise_tictoc = True
-        tic()
+    tic()
     for i in range(n):
         # Track progress
-        if (i==nidx) and sample_wise_tictoc:
-            fprint(f"special tracking update: Finished processing sample number {nidx}/{n}")
-            toc()
+        if i==nidx:
+            fprint(f"Tracking update: Finished processing sample number {nidx}/{n}", verbose=verbose)
+            toc(print_elapsed=verbose)
             tic()
             if nidx<int(n/2):
                 nidx *= 2

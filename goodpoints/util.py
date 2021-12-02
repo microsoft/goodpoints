@@ -16,7 +16,18 @@ def isnotebook():
     except NameError:
         return False      # Probably standard Python interpreter
     
-def fprint(*args, **kwargs):
-    """Flush print: Calls print with flush = True.
-    """
-    print(*args, **kwargs, flush=True)
+# def fprint(*args, verbose=True, **kwargs):
+#     """Flush print: calls print with flush = True.
+#     """
+#     if verbose:
+#         print(*args, **kwargs, flush=True)
+        
+        
+def fprint(*args, verbose=True, **kwargs):
+#    print(a, b)
+    if verbose:
+        print(*args, **kwargs, flush=True)
+#    print(option)
+#    print(kwargs)
+# a = 2
+# arg_printer(f"a{a}")

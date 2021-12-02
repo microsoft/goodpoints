@@ -16,7 +16,8 @@ pip install goodpoints
 The primary kernel thinning function is `thin` in the `kt` module:
 ```python
 from goodpoints import kt
-coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=123, store_K=False, verbose=False)
+coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=123, store_K=False, 
+                  verbose=False)
     """Returns kernel thinning coreset of size floor(n/2^m) as row indices into X
     
     Args:
@@ -30,7 +31,8 @@ coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=123, store_K=
       seed: Random seed to set prior to generation; if None, no seed will be set
       store_K: If False, runs O(nd) space version which does not store kernel
         matrix; if True, stores n x n kernel matrix
-      verbose: If False, do not print intermediate time taken in thinning rounds, if True print that info
+      verbose: If False, do not print intermediate time taken in thinning rounds, 
+        if True print that info
     """
 ```
 For example uses, please refer to the notebook `examples/kt/run_kt_experiment.ipynb`.

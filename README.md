@@ -69,7 +69,7 @@ Code in the `examples` directory uses the `goodpoints` package to recreate the e
 ```
 1. The script `examples/kt/submit_jobs_run_kt.py` reproduces the vignette experiments of Kernel Thinning  on a Slurm cluster
 by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`, where in the last code block we  report the median heuristic based bandwidth parameteters (along with the code to compute it).
-2. After all results have been generated, the notebook `plot_results.ipynb` can be used to reproduce the figures of Kernel Thinning.
+2. After all results have been generated, the notebook `examples/kt/plot_results.ipynb` can be used to reproduce the figures of Kernel Thinning.
 
 
 

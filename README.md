@@ -102,8 +102,6 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
     1c. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`. 
     1d. The notebook currently deploys these jobs on a slurm cluster, but setting deploy_slurm = False in `examples/compress/script_to_deploy_jobs.ipynb` will submit the jobs as independent python calls on terminal.
 2. After all results have been generated, the notebook `examples/compress/plot_compress_results.ipynb` can be used to reproduce the figures of Distribution Compression in Near-linear Time.
-3. The script `examples/compress/construct_compresspp_coresets.py` contains the function `recursive_halving` that converts a halving algorithm into a thinning algorithm by recursively halving.
-4. The script `examples/compress/construct_herding_coresets.py` contains the `herding` function that runs [kernel herding](https://arxiv.org/abs/1203.3472) algorithm introduced by Yutian Chen, Max Welling, and Alex Smola.
 
 
 

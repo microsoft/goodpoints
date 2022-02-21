@@ -421,7 +421,6 @@ def swap(X, coresets, kernel, store_K=False, meanK=None, unique=False):
     # Compute meanK if appropriate
     if meanK is None and not store_K:
         meanK = kernel_matrix_row_mean(X, kernel)
-    print(unique) 
     # Return refined version of best coreset
     return(refine(X, best(X, coresets, kernel, store_K=store_K, meanK=meanK), kernel, meanK=meanK, unique=unique))
 

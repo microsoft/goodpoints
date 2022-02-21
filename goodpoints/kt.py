@@ -501,7 +501,7 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
     if meanK is None:
         sufficient_stat = np.empty(n)
         for ii in range(n):
-            # if unique then set sufficient stats for coreset indices to infinity
+            # if unique then set sufficient_stat for coreset indices to infinity
             if unique and coreset_indicator[ii]:
                 sufficient_stat[ii] = np.inf
             else:
@@ -514,7 +514,7 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         sufficient_stat = kernel(X, X)/coreset_size - 2 * meanK
         # Add in contribution of coreset
         for ii in range(n):
-            # if unique then set sufficient stats for coreset indices to infinity
+            # if unique then set sufficient_stat for coreset indices to infinity
             if unique and coreset_indicator[ii]:
                 sufficient_stat[ii] = np.inf
             else:
@@ -526,12 +526,12 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
     for coreset_idx in range(coreset_size):
         # if unique have to compute sufficient stats for the current coreset point
         if unique:
-            # initially all coreset indices have it set to infinity; 
-            # before swapping first point, we compute the sufficient stats for point 1, and
-            # compare replacing it with every other *non coreset* point; the best alternative
-            # is then assigned a place into coreset, and its sufficient stat is set to infty
-            # thus at each round all the current coreset elements except the one in consideration
-            # has sufficient_stat set to infty
+            # initially all coreset indices have sufficient_stat set to infinity; 
+            # before altering first coreset point, we compute the sufficient_stat for it, and
+            # compare replacing it with every other *non coreset* point; the best point (bp)
+            # then takes the spot of the point in consideration with bp's sufficient_stat set to infty.
+            # thus at each iteration of the for loop, all the current coreset elements except the one 
+            # in consideration have sufficient_stats set to infty
             cidx = coreset[coreset_idx] # the index of coreset_idx in X
             if meanK is None:
                 # Kernel evaluation between x at cidx and every row in X

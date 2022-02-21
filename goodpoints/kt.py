@@ -37,7 +37,9 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
         matrix; if True, stores n x n kernel matrix
       meanK: None or array of length n with meanK[ii] = mean of swap_kernel(X[ii], X);
         used to speed up computation when not None
+      unique: If True, constrains the output to never contain the same row index more than once
       verbose: If False do not print intermediate time taken, if True print that info when m>=7
+      
     """
     # Partition points into 2^m candidate coresets of size floor(n/2^m)
     verbose = (verbose and (m>=7))
@@ -414,11 +416,12 @@ def swap(X, coresets, kernel, store_K=False, meanK=None, unique=False):
         matrix; if True, stores n x n kernel matrix
       meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
         used to speed up computation when not None
+      unique: If True, constrains the output to never contain the same row index more than once
     """
     # Compute meanK if appropriate
     if meanK is None and not store_K:
         meanK = kernel_matrix_row_mean(X, kernel)
-        
+    print(unique) 
     # Return refined version of best coreset
     return(refine(X, best(X, coresets, kernel, store_K=store_K, meanK=meanK), kernel, meanK=meanK, unique=unique))
 
@@ -474,6 +477,9 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         kernel(y,X) returns array of kernel evaluations between y and each row of X
       meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
         used to speed up computation when not None
+       unique: If True, constrains the output to never contain the same row index more than once
+               (logic of point-by-point swapping is altered to ensure MMD improvement
+               as well as that the coreset does not contain any repeated points at any iteration)
     """
     n = X.shape[0]
 
@@ -486,24 +492,57 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
     #   twomeanK[ii] = 2 * the mean of kernel(X[ii], X)
     #   twoncoresumK[ii] = 2 * the sum of kernel(X[ii], X[coreset]) / coreset_size
     two_over_coreset_size = 2/coreset_size
+    
+    
+    # Initialize coreset indicator of size n, takes value True at coreset indices
+    coreset_indicator = np.zeros(n, dtype=bool)
+    coreset_indicator[coreset] = True
+    
     if meanK is None:
         sufficient_stat = np.empty(n)
         for ii in range(n):
-            # Kernel evaluation between xi and every row in X
-            kii =  kernel(X[ii, np.newaxis], X)
-            sufficient_stat[ii] = 2*(np.mean(kii[coreset])-np.mean(kii)) + kii[ii]/coreset_size    
+            # if unique then set sufficient stats for coreset indices to infinity
+            if unique and coreset_indicator[ii]:
+                sufficient_stat[ii] = np.inf
+            else:
+                # Kernel evaluation between xi and every row in X
+                kii =  kernel(X[ii, np.newaxis], X)
+                sufficient_stat[ii] = 2*(np.mean(kii[coreset])-np.mean(kii)) + kii[ii]/coreset_size    
+                
     else:
         # Initialize to kernel diagonal normalized by coreset_size - 2 * meanK
         sufficient_stat = kernel(X, X)/coreset_size - 2 * meanK
         # Add in contribution of coreset
         for ii in range(n):
-            # Kernel evaluation between xi and every coreset row in X
-            kiicore =  kernel(X[ii, np.newaxis], X[coreset])
-            sufficient_stat[ii] += 2*np.mean(kiicore)
+            # if unique then set sufficient stats for coreset indices to infinity
+            if unique and coreset_indicator[ii]:
+                sufficient_stat[ii] = np.inf
+            else:
+                # Kernel evaluation between xi and every coreset row in X
+                kiicore =  kernel(X[ii, np.newaxis], X[coreset])
+                sufficient_stat[ii] += 2*np.mean(kiicore)
     
     # Consider each coreset point in turn 
     for coreset_idx in range(coreset_size):
-        # Remove the contribution of this point from the normalized coreset sum in sufficient stat
+        # if unique have to compute sufficient stats for the current coreset point
+        if unique:
+            # initially all coreset indices have it set to infinity; 
+            # before swapping first point, we compute the sufficient stats for point 1, and
+            # compare replacing it with every other *non coreset* point; the best alternative
+            # is then assigned a place into coreset, and its sufficient stat is set to infty
+            # thus at each round all the current coreset elements except the one in consideration
+            # has sufficient_stat set to infty
+            cidx = coreset[coreset_idx] # the index of coreset_idx in X
+            if meanK is None:
+                # Kernel evaluation between x at cidx and every row in X
+                kcidx = kernel(X[cidx, np.newaxis], X)
+                sufficient_stat[cidx] = 2*(np.mean(kcidx[coreset])-np.mean(kcidx)) + kcidx[cidx]/coreset_size    
+            else:
+                kcidxcore =  kernel(X[cidx, np.newaxis], X[coreset])
+                sufficient_stat[cidx] = kernel(X[cidx, np.newaxis], X[cidx, np.newaxis])/coreset_size - 2 * meanK[cidx] 
+                sufficient_stat[cidx] += 2*np.mean(kcidxcore)
+            
+        # Remove the contribution of coreset_idx point from the normalized coreset sum in sufficient stat
         sufficient_stat -= kernel(X[coreset[coreset_idx], np.newaxis], X)*two_over_coreset_size
         # Find the input point that would reduce MMD the most
         best_point = np.argmin(sufficient_stat)
@@ -512,8 +551,59 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         sufficient_stat += kernel(X[best_point, np.newaxis], X)*two_over_coreset_size
         if unique:
             sufficient_stat[best_point] = np.inf
-            
     return(coreset)
+
+# def refine(X, coreset, kernel, meanK=None, unique=False):
+#     """
+#     Replace each element of a coreset in turn by the point in X that yields the minimum 
+#     MMD between all points in X and the resulting coreset.
+    
+#     Args:
+#       X: Input sequence of sample points with shape (n, d)
+#       coreset: Row indices of X representing coreset
+#       kernel: Kernel function (typically the target kernel, k);
+#         kernel(y,X) returns array of kernel evaluations between y and each row of X
+#       meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
+#         used to speed up computation when not None
+#     """
+#     n = X.shape[0]
+
+#     # Initialize new KT coreset to original coreset
+#     coreset = np.copy(coreset)
+#     coreset_size = len(coreset)
+#     # Initialize sufficient kernel matrix statistics
+#     # sufficient_stat = twoncoresumK + ndiagK - twomeanK where
+#     #   ndiagK[ii] = diagonal element of kernel matrix, kernel(X[ii], X[ii]) / coreset_size
+#     #   twomeanK[ii] = 2 * the mean of kernel(X[ii], X)
+#     #   twoncoresumK[ii] = 2 * the sum of kernel(X[ii], X[coreset]) / coreset_size
+#     two_over_coreset_size = 2/coreset_size
+#     if meanK is None:
+#         sufficient_stat = np.empty(n)
+#         for ii in range(n):
+#             # Kernel evaluation between xi and every row in X
+#             kii =  kernel(X[ii, np.newaxis], X)
+#             sufficient_stat[ii] = 2*(np.mean(kii[coreset])-np.mean(kii)) + kii[ii]/coreset_size    
+#     else:
+#         # Initialize to kernel diagonal normalized by coreset_size - 2 * meanK
+#         sufficient_stat = kernel(X, X)/coreset_size - 2 * meanK
+#         # Add in contribution of coreset
+#         for ii in range(n):
+#             # Kernel evaluation between xi and every coreset row in X
+#             kiicore =  kernel(X[ii, np.newaxis], X[coreset])
+#             sufficient_stat[ii] += 2*np.mean(kiicore)
+    
+#     # Consider each coreset point in turn 
+#     for coreset_idx in range(coreset_size):
+#         # Remove the contribution of this point from the normalized coreset sum in sufficient stat
+#         sufficient_stat -= kernel(X[coreset[coreset_idx], np.newaxis], X)*two_over_coreset_size
+#         # Find the input point that would reduce MMD the most
+#         best_point = np.argmin(sufficient_stat)
+#         # Add best point to coreset and its contribution to sufficient stat
+#         coreset[coreset_idx] = best_point
+#         sufficient_stat += kernel(X[best_point, np.newaxis], X)*two_over_coreset_size
+#         if unique:
+#             sufficient_stat[best_point] = np.inf
+#     return(coreset)
 
 def kernel_matrix_row_mean(X, kernel):
     """Returns the mean of each kernel matrix row

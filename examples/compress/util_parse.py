@@ -26,7 +26,7 @@ def init_parser():
     
     # rerun flag, if set to 0 then coresets/results are loaded from the disk if available
     # else coresets are regenerated
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--rerun','-rr',type=int, default = 0, help="whether to rerun the experiments") 
     
     # input size in log base 4
@@ -51,21 +51,21 @@ def init_parser():
 
     ################ generic arguments for construct_{XYZ}_coresets.py ################
     # set to non-zero when you want the compress functions to return coresets
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--returncoreset', '-rc', type=int, default=0, 
                         help="whether to return coreset, set to anything other than 0 ")
     
     # set to non-zero when you want the construct functions to print coresets and mmds
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--verbose', '-v', type=int, default=0, 
                 help="whether to print coresets and mmds, set to anything other than 0 ") 
     
     # whether to compute mmd or not--load from disk when the file exists 
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--computemmd', '-cmmd', type=int, default=0,
                             help="whether to compute mmd results and save to disk set to anything other than 0 ")
     
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     # whether to recompute mmd--overwrites the file on disk
     parser.add_argument('--recomputemmd', '-rcmmd', type=int, default=0,
                             help="whether to re-compute mmd results (refresh results on disk)\
@@ -78,7 +78,7 @@ def init_parser():
     ################ kt related arguments ################
     
     # flag to decide if krt kernel should be used for kt.split set to any non-zero value to use krt.
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--krt', '-krt', type=int, default=0,
                             help="whether to use krt for kt.split")
     
@@ -90,8 +90,13 @@ def init_parser():
                         help="name of the algorithm to be used as halve/thin in compress++") 
     
     # whether to symmetrize in stage 1
-    # *** THIS IS FLAG PARAMETER (will be converted to boolean by format_args) ***
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
     parser.add_argument('--symm1','-symm1',type =int , default = 1,
+                       help="whether to symmetrize halve output in compress") 
+    
+    # whether to rechalve in stage 2
+    # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
+    parser.add_argument('--rh2','-rh2',type =int , default = 0,
                        help="whether to symmetrize halve output in compress") 
     
     # the oversampling parameter g for compress (called alpha here)
@@ -130,6 +135,7 @@ def format_args(args):
     args.returncoreset = False if args.returncoreset == 0 else True
     
     args.symm1 = False if args.symm1 == 0 else True
+    args.rh2 = False if args.rh2 == 0 else True
     
     args.krt = False if args.krt == 0 else True
     

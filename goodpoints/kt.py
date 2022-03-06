@@ -552,13 +552,12 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
             sufficient_stat[best_point] = np.inf
     return(coreset)
 
-def refine_all(X, coresets, kernel, meanK=None, unique=False):
+def refine_all(X, coresets, kernel, meanK=None, seed=None, unique=True):
     """
     Given a partition of X in coresets, refine each candidate coreset (rows of coresets) 
     with turn by turn swap of points between rows while maintaing the partition property. 
     Swaps are made only when the MMD of the (new) rows to all points in X is improved. 
-    We then return the best of the candidate coresets (after comparing with
-    a baseline standard thinning coreset).
+    We then return a uniformly random candidate.
     
     Args:
       X: Input sequence of sample points with shape (n, d)
@@ -687,8 +686,8 @@ def refine_all(X, coresets, kernel, meanK=None, unique=False):
                 sufficient_stat[cc, cc_point] = np.inf
                 sufficient_stat[cc_best, cc_best_point] = np.inf
     
-    # return the best coreset
-    return(best(X, coresets, kernel, store_K=False, meanK=meanK))
+    # return a random coreset
+    return(coresets[npr.default_rng(seed).choice(num_coresets)])
 
 
 def kernel_matrix_row_mean(X, kernel):

@@ -133,7 +133,7 @@ def construct_compresspp_coresets(args):
             return (alpha)/ ( alpha + ( (2**alpha)*( size - alpha )  )  )
         if args.compressalg == "kt":
             thin = partial(kt.thin, m=args.alpha , split_kernel = split_kernel, swap_kernel = swap_kernel, 
-                           seed = thin_rng, delta= delta*thin_error(args.size, args.alpha)
+                           seed = thin_rng, delta= delta*thin_error(args.size, args.alpha))
         if args.compressalg == "herding":
             thin = partial(herding, m = args.alpha, kernel = swap_kernel, unique = True)
             

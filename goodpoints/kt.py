@@ -164,6 +164,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
+            j_log_multiplier = log_multiplier - 2*(j-1)
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -182,7 +183,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(log_multiplier), b^2)
                 # log_multiplier = 2*np.log(4*n/delta)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(log_multiplier - 2*(j-1)) ), b_sqd)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(j_log_multiplier) ), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:
@@ -322,6 +323,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
+            j_log_multiplier = log_multiplier - 2*(j-1)
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -337,7 +339,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(log_multiplier 2*(j-1) ) ), b_sqd)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(j_log_multiplier) ), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:

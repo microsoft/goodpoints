@@ -93,7 +93,7 @@ def construct_compresspp_coresets(args):
                                                         use_krt_split=args.krt, name="gauss") 
     
     # probability threshold
-    delta = 0.5
+    delta = 0.25
     
     
     # mmd array
@@ -130,7 +130,7 @@ def construct_compresspp_coresets(args):
         thin_rng = npr.default_rng(thin_seed)
 
         def thin_error(size, alpha):
-            return (alpha)/ ( alpha + ( (2**alpha)*( size - alpha )  )  )
+            return (alpha)/ (alpha + ( (2**alpha)*( size - alpha )))
         if args.compressalg == "kt":
             thin = partial(kt.thin, m=args.alpha , split_kernel = split_kernel, swap_kernel = swap_kernel, 
                            seed = thin_rng, delta= delta*thin_error(args.size, args.alpha))

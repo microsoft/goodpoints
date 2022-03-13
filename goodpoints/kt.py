@@ -110,7 +110,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n*m/delta)
+    log_multiplier = 2*np.log(2*n*m/delta)
 
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 
@@ -269,7 +269,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n*m/delta)
+    log_multiplier = 2*np.log(2*n*m/delta)
         
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 

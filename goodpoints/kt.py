@@ -110,7 +110,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n/delta)
+    log_multiplier = 2*np.log(4*n*m/delta)
 
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 
@@ -181,7 +181,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*log_multiplier), b_sqd)
+                # log_multiplier = 2*np.log(4*n/delta)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(log_multiplier - 2*(j-1)) ), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:
@@ -267,7 +268,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n/delta)
+    log_multiplier = 2*np.log(4*n*m/delta)
         
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 
@@ -336,7 +337,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*log_multiplier), b_sqd)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(log_multiplier 2*(j-1) ) ), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:

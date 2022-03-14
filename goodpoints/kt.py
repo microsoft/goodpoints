@@ -181,9 +181,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                 # Compute b^2 = ||f||^2 = ||k(x1,.) - k(x2,.)||_k^2
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
-                # a = max(b sig sqrt(log_multiplier), b^2)
-                # log_multiplier = 2*np.log(4*n/delta)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(j_log_multiplier) ), b_sqd)
+                # a = max(b sig sqrt(j_log_multiplier), b^2)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*j_log_multiplier), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:
@@ -338,7 +337,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
                 # Compute b^2 = ||f||^2 = ||k(x1,.) - k(x2,.)||_k^2
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
-                # a = max(b sig sqrt(log_multiplier), b^2)
+                # a = max(b sig sqrt(j_log_multiplier), b^2)
                 thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(j_log_multiplier) ), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd

@@ -96,11 +96,11 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 }
 ```
 1. The notebook `examples/compress/script_to_deploy_jobs.ipynb` reproduces the experiments of Distribution Compression in Near-linear Time in the following manner: 
-    1a. It generates various coresets and computes their mmds by executing `examples/compress/construct_{THIN}_coresets.py` for `THIN` in `{compresspp, kt, st, herding}` with appropriate parameters,
+    1. It generates various coresets and computes their mmds by executing `examples/compress/construct_{THIN}_coresets.py` for `THIN` in `{compresspp, kt, st, herding}` with appropriate parameters,
         where the flag kt stands for kernel thinning, st stands for standard thinning (choosing every t-th point), and herding refers to kernel herding.
-    1b. It compute the runtimes of different algorithms by executing `examples/compress/run_time.py`.
-    1c. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`. 
-    1d. The notebook currently deploys these jobs on a slurm cluster, but setting deploy_slurm = False in `examples/compress/script_to_deploy_jobs.ipynb` will submit the jobs as independent python calls on terminal.
+    2. It compute the runtimes of different algorithms by executing `examples/compress/run_time.py`.
+    3. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`. 
+    4. The notebook currently deploys these jobs on a slurm cluster, but setting deploy_slurm = False in `examples/compress/script_to_deploy_jobs.ipynb` will submit the jobs as independent python calls on terminal.
 2. After all results have been generated, the notebook `examples/compress/plot_compress_results.ipynb` can be used to reproduce the figures of Distribution Compression in Near-linear Time.
 
 

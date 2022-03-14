@@ -26,7 +26,7 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
     
     Args:
       X: Input sequence of sample points with shape (n, d)
-      m: Number of halving rounds
+      m: Number of halving rounds (integer >= 0)
       split_kernel: Kernel function used by KT-SPLIT (typically a square-root kernel, krt);
         split_kernel(y,X) returns array of kernel evaluations between y and each row of X
       swap_kernel: Kernel function used by KT-SWAP (typically the target kernel, k);
@@ -41,7 +41,11 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
       verbose: If False do not print intermediate time taken, if True print that info when m>=7
       
     """
-    # Partition points into 2^m candidate coresets of size floor(n/2^m)
+    if m == 0:
+        # Zero halving rounds requested
+        # Return coreset containing all indices
+        return(np.arange(X.shape[0]))
+
     verbose = (verbose and (m>=7))
     
     fprint('Running kt.split', verbose=verbose)
@@ -51,9 +55,9 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
     
     fprint('Running kt.swap', verbose=verbose)
     tic()
-    coresets = swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK, unique=unique)
+    coreset = swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK, unique=unique)
     toc(print_elapsed=verbose)
-    return(coresets)
+    return(coreset)
 
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% KT Split Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,8 +95,13 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
       seed: Random seed to set prior to generation; if None, no seed will be set
       verbose: If False do not print intermediate time taken, if True print that info
     """
-    # Function which returns kernel value for two arrays of row indices of X
+    if m == 0:
+        # Zero halving rounds requested
+        # Return coreset containing all indices
+        return(np.arange(X.shape[0]))
+    
     verbose = verbose and (m>=7)
+    # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
         return(kernel(X[ii], X[jj]))
     
@@ -250,6 +259,11 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
         no seed will be set
       verbose: If False do not print intermediate time taken, if True print that info
     """
+    if m == 0:
+        # Zero halving rounds requested
+        # Return coreset containing all indices
+        return(np.arange(X.shape[0]))
+    
     # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
         return(kernel(X[ii], X[jj]))
@@ -478,9 +492,9 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         kernel(y,X) returns array of kernel evaluations between y and each row of X
       meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
         used to speed up computation when not None
-       unique: If True, constrains the output to never contain the same row index more than once
-               (logic of point-by-point swapping is altered to ensure MMD improvement
-               as well as that the coreset does not contain any repeated points at any iteration)
+      unique: If True, constrains the output to never contain the same row index more than once
+              (logic of point-by-point swapping is altered to ensure MMD improvement
+              as well as that the coreset does not contain any repeated points at any iteration)
     """
     n = X.shape[0]
 

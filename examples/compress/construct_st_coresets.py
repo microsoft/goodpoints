@@ -91,7 +91,7 @@ def construct_st_coresets(args):
                           sample_seed=sample_seed, thin_seed=None, 
                           compress_seed=None,
                           compressalg=None, 
-                          alpha=None,
+                          g=None,
                           )
         
         tic()

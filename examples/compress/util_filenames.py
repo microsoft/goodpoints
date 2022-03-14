@@ -41,7 +41,7 @@ def get_file_template(folder, prefix, d, input_size, m, params_p, params_k_split
                       delta, sample_seed, thin_seed=None, 
                       compress_seed=None,
                       compressalg=None, 
-                      alpha=None,
+                      g=None,
                       ):
     '''
     ### currently supports names required by
@@ -86,8 +86,8 @@ def get_file_template(folder, prefix, d, input_size, m, params_p, params_k_split
     if "Compresspp" in prefix: # since we can summy flags to in the prefix with Blowup settings
         assert(compressalg is not None)
         assert(compress_seed is not None)
-        assert(alpha is not None)
-        compress_alg_str = "-alg{}-alpha{}-compressseed{}".format(compressalg, alpha, compress_seed)
+        assert(g is not None)
+        compress_alg_str = "-alg{}-g{}-compressseed{}".format(compressalg, g, compress_seed)
         m_str = ""
     else:
         compress_alg_str = "" # redundant

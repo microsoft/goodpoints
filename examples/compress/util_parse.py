@@ -99,9 +99,9 @@ def init_parser():
     parser.add_argument('--rh2','-rh2',type =int , default = 0,
                        help="whether to symmetrize halve output in compress") 
     
-    # the oversampling parameter g for compress (called alpha here)
-    parser.add_argument('--alpha','-alp',type=int, default = 0,
-                       help="the oversampling parameter g for compress (called alpha here)") 
+    # the oversampling parameter g for compress
+    parser.add_argument('--g','-g',type=int, default = 0,
+                       help="the oversampling parameter g for compress (called g here)") 
     
 
     ################ target distribution related parameters ################

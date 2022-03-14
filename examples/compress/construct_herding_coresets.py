@@ -100,7 +100,7 @@ def construct_herding_coresets(args):
                          thin_seed=None, 
                          compress_seed=None,
                          compressalg=None, 
-                         alpha=None,
+                         g=None,
                           )
 
         # Include replication number in filename

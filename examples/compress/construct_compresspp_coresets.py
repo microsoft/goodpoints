@@ -92,9 +92,14 @@ def construct_compresspp_coresets(args):
     params_k_split, params_k_swap, split_kernel, swap_kernel = compute_params_k(d=d, var_k=var_k, 
                                                         use_krt_split=args.krt, name="gauss") 
     
-    # probability threshold
-    delta = 0.25
-    
+    # Specify base failure probability for kernel thinning
+    delta = 0.5
+    # Each Compress Halve call applied to an input of length l uses KT( delta halve_error(l, args.size, args.alpha) )
+    def halve_error(length, size, alpha):
+        return length**2 / ( 4* (4**size)*(2**alpha)*( alpha + (2**alpha *( size  - alpha  )) ) )
+    # Each Compress++ Thin call uses KT( delta thin_error(args.size, args.alpha) )
+    def thin_error(size, alpha):
+        return (alpha)/ (alpha + ( (2**alpha)*( size - alpha )))
     
     # mmd array
     mmds = np.zeros(args.repn)
@@ -110,16 +115,12 @@ def construct_compresspp_coresets(args):
         #### SUPPORT FOR NEW THINNING ALGORITHMS ####
         ## to add support for new thinning algorithms, add if/else logic here, and pass the appropriate flag in args.compressalg while calling this function
         ## currently this code adds the logic for kt.thin, and herding
-        
-        def halve_error(length, size , alpha):
-            return length**2 / ( 4* (4**size)*(2**alpha)*( alpha + (2**alpha *( size  - alpha  ) )   ))
-
 
         if args.compressalg == "kt":
             if args.symm1:
-                halve = compress.symmetrize(lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel, seed = halve_rng, unique=True, delta = 2*delta*halve_error(len(x) , args.size , args.alpha)))
+                halve = compress.symmetrize(lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel, seed = halve_rng, unique=True, delta = delta*halve_error(len(x) , args.size , args.alpha)))
             else:
-                halve = lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel , seed = halve_rng, delta = 2*delta*halve_error(len(x) , args.size , args.alpha))
+                halve = lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel , seed = halve_rng, delta = delta*halve_error(len(x) , args.size , args.alpha))
 
         if args.compressalg == "herding":
             if args.symm1: # when symmetrize is set to true; necessary for determinstic algorithms with compress for the guarantees
@@ -129,11 +130,9 @@ def construct_compresspp_coresets(args):
 
         thin_rng = npr.default_rng(thin_seed)
 
-        def thin_error(size, alpha):
-            return (alpha)/ (alpha + ( (2**alpha)*( size - alpha )))
         if args.compressalg == "kt":
             thin = partial(kt.thin, m=args.alpha , split_kernel = split_kernel, swap_kernel = swap_kernel, 
-                           seed = thin_rng, delta= 2*delta*thin_error(args.size, args.alpha))
+                           seed = thin_rng, delta= delta*thin_error(args.size, args.alpha))
         if args.compressalg == "herding":
             thin = partial(herding, m = args.alpha, kernel = swap_kernel, unique = True)
             

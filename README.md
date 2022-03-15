@@ -75,7 +75,7 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Generalized Kernel Thinning](https://arxiv.org/pdf/2110.01593.pdf) 
 ```
-@inproceedings{dwivedi2021generalized,
+@inproceedings{dwivedi2022generalized,
   title={Generalized Kernel Thinning},
   author={Raaz Dwivedi and Lester Mackey},
   booktitle={International Conference on Learning Representations},
@@ -88,7 +88,7 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Distribution Compression in Near-linear Time](https://arxiv.org/pdf/2111.07941.pdf)
 ```
-@inproceedings{shetty2021distribution,
+@inproceedings{shetty2022distribution,
   title={Distribution Compression in Near-linear Time},
   author={Abhishek Shetty and Raaz Dwivedi and Lester Mackey},
   booktitle={International Conference on Learning Representations},

@@ -134,7 +134,7 @@ def construct_compresspp_coresets(args):
             thin = partial(kt.thin, m=args.g, split_kernel = split_kernel, swap_kernel = swap_kernel, 
                            seed = thin_rng, delta= delta*thin_error(args.size, args.g))
         if args.compressalg == "herding":
-            thin = partial(herding, m = args.g, kernel = swap_kernel, unique = True)
+            thin = partial(herding, m = args.g, kernel = swap_kernel, unique = False)
             
         prefix = "Compresspp" 
         # change prefix to accommodate for the two variations

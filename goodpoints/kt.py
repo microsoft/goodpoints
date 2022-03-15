@@ -177,6 +177,9 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
             # j_log_multiplier = 2*np.log(2*n*m/delta/2^j) 
+            #                  = 2*np.log(2*n*m/delta) - j * 2 log(2)
+            #                  = log_multiplier - j * TWO_LOG_2
+            # the term is 2^{j-1} in the paper because j starts at 1; here j starts at 0
             j_log_multiplier = log_multiplier - j * TWO_LOG_2
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):

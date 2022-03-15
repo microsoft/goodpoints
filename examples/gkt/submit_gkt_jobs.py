@@ -117,7 +117,7 @@ def combinemmd_slurm_command(prefix, fix_param_str, m_max, d, total_reps, comput
 
 # define the slurm object
 partitions = ["high", "yugroup", "jsteinhardt", "low"]
-idx = 1 # which partition to pick
+idx = 2 # which partition to pick
 
 s = Slurm("convert", {"partition": partitions[idx], 
                  "c": 1
@@ -138,9 +138,9 @@ computemmd = 1 #
 
 ### All experiments are run with Gauss(sigma) as k and Gauss(sigma/sqrt(2)) as krt ###
 gauss_target = False # Gauss P
-mog_target = True # MoG P
-mcmc_target = False # MCMC P
-mcmc_file_idx = range(12, 16)  # range of MCMC files that need to be run
+mog_target = False # MoG P
+mcmc_target = True # MCMC P
+mcmc_file_idx = range(16, 24)  # range of MCMC files that need to be run; RUN 12--16, and 16--24 separately
 rerun = 0 # BUT STILL DOESN"T RERUN IF DURING COMBINING ; SO DON"T EXPECT RERUN IF TOTAL REPS = REPS_PER_JOB
 
 all_mcmc_filenames = ['Goodwin_RW','Goodwin_ADA-RW', 'Goodwin_MALA', 'Goodwin_PRECOND-MALA', 'Lotka_RW', 'Lotka_ADA-RW', 'Lotka_MALA', 'Lotka_PRECOND-MALA','Hinch_P_seed_1_temp_1', 'Hinch_P_seed_2_temp_1', 'Hinch_TP_seed_1_temp_8', 'Hinch_TP_seed_2_temp_8', 'Hinch_P_seed_1_temp_1_scaled', 'Hinch_P_seed_2_temp_1_scaled', 'Hinch_TP_seed_1_temp_8_scaled', 'Hinch_TP_seed_2_temp_8_scaled', 
@@ -155,7 +155,7 @@ if gauss_target:
     ds = [2, 10, 20, 50, 100] #, 10, 20, 50, 100] # for Gauss P
 #     ds = [2, 4, 10, 100] # for Gauss P
 if mog_target:
-    Ms = [4] #, 8] # M = number of mixtures for 2 dim MOG P
+    Ms = [4, 6, 8] #, 8] # M = number of mixtures for 2 dim MOG P
 if mcmc_target:
     ## NOTE for Hinch /Hinch_scale MCMC experiments m_max <=8 is permitted
     mcmc_files = np.array(all_mcmc_filenames)[mcmc_file_idx] # filename denotes the MCMC setting to be loaded;
@@ -184,15 +184,14 @@ fix_param_str = 'module load python; python3 run_generalized_kt_experiment.py '
 # in all cases, var/gamma parameter is set automatically; 
 # sigma = 1/gamma = sqrt(2d) for Gauss/MoG, and median distance in MCMC)
 # for non Gauss/Laplace cases we have to specify nu parameter
-#### settings
+    
 if gauss_target:
     # Gauss P : d = 2, 10, 20, 50, 100
     #    - kernels : (1) Gauss k with t-KT and KT(rt)
-    
     # list of kernels to be run
     kernel_list = ["gauss"] 
     # list of powers for the kernels (should be same size as kernel_list)
-    power_list = [root_power]
+    power_list = [0.5]
     # whether power kernel needs to be computed (should be same size as kernel_list)
     compute_power_list = [1]
     # whether standard thinning needs to be computed (should be same size as kernel_list)
@@ -204,7 +203,7 @@ if gauss_target:
     # whether power KT needs to be computed (should be same size as kernel_list)
     power_kt_flags = [1]
     
-if gauss_target:
+    
     # run gaussian experiments
     for kk, kernel in enumerate(kernel_list):
         new_fix_param_str = fix_param_str + ' -P gauss' + ' -kernel  '  + kernel
@@ -264,8 +263,7 @@ if mog_target:
     power_kt_flags = [1, 0, 0, 0] # same as root kt when root_power = 0.5
     # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
     nu_list = [0., 0., 0.5, 2.] # nu is same as beta for bspline
-
-if mog_target:
+    
     # run MOG experiments
     d = 2 # doesn't matter; will be set internally automatically; just specify some int
     for kk, kernel in enumerate(kernel_list):
@@ -299,25 +297,27 @@ if mog_target:
                                                        rerun=0,
                                            nu=nu_list[kk])
 
-# if mcmc_target:
-#     # list of kernels to be run
-#     kernel_list = ["laplace"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
-#     # list of powers for the kernels (should be same size as kernel_list)
-#     power_list = [0.81]
-#     # whether power kernel needs to be computed (should be same size as kernel_list)
-#     compute_power_list = [1]
-#     # whether standard thinning needs to be computed (should be same size as kernel_list)
-#     standard_thin_flags = [1] 
-#     # whether target KT needs to be computed (should be same size as kernel_list)
-#     target_kt_flags = [0]
-#     # whether KT+ needs to be computed (should be same size as kernel_list)
-#     kt_plus_flags = [1]
-#     # whether power KT needs to be computed (should be same size as kernel_list)
-#     power_kt_flags = [0] # same as root kt when root_power = 0.5
-#     # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
-#     nu_list = [0.] # nu is same as beta for bspline
-    
-if mcmc_target:
+# laplace kernel for Goodwin/Lotka-Volterra
+if mcmc_target and mcmc_file_idx==range(16, 24):
+    # list of kernels to be run
+    kernel_list = ["laplace"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
+    # list of powers for the kernels (should be same size as kernel_list)
+    power_list = [0.81]
+    # whether power kernel needs to be computed (should be same size as kernel_list)
+    compute_power_list = [1]
+    # whether standard thinning needs to be computed (should be same size as kernel_list)
+    standard_thin_flags = [1] 
+    # whether target KT needs to be computed (should be same size as kernel_list)
+    target_kt_flags = [0]
+    # whether KT+ needs to be computed (should be same size as kernel_list)
+    kt_plus_flags = [1]
+    # whether power KT needs to be computed (should be same size as kernel_list)
+    power_kt_flags = [0] # same as root kt when root_power = 0.5
+    # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
+    nu_list = [0.] # nu is same as beta for bspline
+
+# IMQ kernel for Hinch
+if mcmc_target and mcmc_file_idx==range(12, 16):
     # list of kernels to be run
     kernel_list = ["imq"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
     # list of powers for the kernels (should be same size as kernel_list)

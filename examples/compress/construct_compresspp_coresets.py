@@ -96,11 +96,11 @@ def construct_compresspp_coresets(args):
     delta = 0.5
     # Each Compress Halve call applied to an input of length l uses KT( delta halve_error(l, args.size, args.g) )
     def halve_error(length, size, g):
-        return (length**2) / ( 4*(4**size)*(2**g)*( g + (2**g) * (size  - g) ) )
+        return 0 if size == g else .5 * (length**2) / (4 * (4**size) * (4 ** g) * (size - g) ) ###(length**2) / ( 4*(4**size)*(2**g)*( g + (2**g) * (size  - g) ) )
     # Each Compress++ Thin call uses KT( delta thin_error(args.size, args.g) )
     def thin_error(size, g):
-        return g / (g + ( (2**g)*(size - g) ))
-    
+        return .5 ###g / (g + ( (2**g)*(size - g) ))
+        
     # mmd array
     mmds = np.zeros(args.repn)
     

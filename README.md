@@ -88,7 +88,7 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Distribution Compression in Near-linear Time](https://arxiv.org/pdf/2111.07941.pdf)
 ```
-@article{shetti2021distribution,
+@article{shetty2021distribution,
   title={Distribution Compression in Near-linear Time},
   author={Abhishek Shetty and Raaz Dwivedi and Lester Mackey},
   journal={arXiv preprint arXiv:2111.07941},

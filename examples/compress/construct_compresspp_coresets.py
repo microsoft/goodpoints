@@ -165,7 +165,16 @@ def construct_compresspp_coresets(args):
         def fun_compute_mmds():
             print("computing mmd")
             if 'X' not in globals(): X = sample(4**(args.size),params_p, seed = sample_seed)
-            mmd = np.sqrt(squared_mmd(params_k=params_k_swap,  params_p=params_p, xn=X[coreset]))
+            if params_p["saved_samples"]:# if MCMC data compute MMD(Sin)
+                params_p_eval = dict()
+                params_p_eval["data_dir"] = params_p["data_dir"]
+                params_p_eval["d"] = d
+                params_p_eval["name"] =  params_p["name"]+ "_sin"
+                params_p_eval["Pnmax"] = X
+                params_p_eval["saved_samples"] = False
+            else:
+                params_p_eval = params_p
+            mmd = np.sqrt(squared_mmd(params_k=params_k_swap,  params_p=params_p_eval, xn=X[coreset]))
             return(mmd)
         
         if args.rerun or not os.path.exists(filename):

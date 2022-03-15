@@ -75,11 +75,11 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Generalized Kernel Thinning](https://arxiv.org/pdf/2110.01593.pdf) 
 ```
-@article{dwivedi2021generalized,
+@inproceedings{dwivedi2022generalized,
   title={Generalized Kernel Thinning},
   author={Raaz Dwivedi and Lester Mackey},
-  journal={arXiv preprint arXiv:2110.01593},
-  year={2021}
+  booktitle={International Conference on Learning Representations},
+  year={2022}
 }
 ```
 1. The script `examples/gkt/submit_gkt_jobs.py` reproduces the vignette experiments of Generalized Kernel Thinning on a Slurm cluster by executing `examples/gkt/run_generalized_kt_experiment.ipynb` with appropriate parameters. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`.
@@ -88,11 +88,11 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Distribution Compression in Near-linear Time](https://arxiv.org/pdf/2111.07941.pdf)
 ```
-@article{shetti2021distribution,
+@inproceedings{shetty2022distribution,
   title={Distribution Compression in Near-linear Time},
   author={Abhishek Shetty and Raaz Dwivedi and Lester Mackey},
-  journal={arXiv preprint arXiv:2111.07941},
-  year={2021}
+  booktitle={International Conference on Learning Representations},
+  year={2022}
 }
 ```
 1. The notebook `examples/compress/script_to_deploy_jobs.ipynb` reproduces the experiments of Distribution Compression in Near-linear Time in the following manner: 

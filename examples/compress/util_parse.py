@@ -57,7 +57,7 @@ def init_parser():
     
     # set to non-zero when you want the construct functions to print coresets and mmds
     # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
-    parser.add_argument('--verbose', '-v', type=int, default=0, 
+    parser.add_argument('--verbose', '-v', type=int, default=1, 
                 help="whether to print coresets and mmds, set to anything other than 0 ") 
     
     # whether to compute mmd or not--load from disk when the file exists 

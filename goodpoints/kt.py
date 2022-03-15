@@ -44,7 +44,7 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
     if m == 0:
         # Zero halving rounds requested
         # Return coreset containing all indices
-        return(np.arange(X.shape[0]))
+        return(np.arange(X.shape[0], dtype=int))
 
     verbose = (verbose and (m>=7))
     
@@ -80,6 +80,9 @@ def split(X, m, kernel, delta=0.5, seed=None, store_K=False, verbose=False):
     return(split_K(X, m, kernel, delta=delta, seed=seed, verbose=verbose) if store_K
            else split_X(X, m, kernel, delta=delta, seed=seed, verbose=verbose))
 
+# Constant used by split functions
+TWO_LOG_2 = 2*np.log(2)
+
 def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     """Returns 2^m kernel thinning coresets of size floor(n/2^m) as a 2D array
     (uses O(nd) space, memory efficient for small d; slower in computation time
@@ -97,8 +100,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     """
     if m == 0:
         # Zero halving rounds requested
-        # Return coreset containing all indices
-        return(np.arange(X.shape[0]))
+        # Return 2D coreset array containing a single coreset (one row) with all indices
+        return(np.arange(X.shape[0], dtype=int)[np.newaxis,:])
     
     verbose = verbose and (m>=7)
     # Function which returns kernel value for two arrays of row indices of X
@@ -173,7 +176,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
-            j_log_multiplier = log_multiplier - 2*(j-1)
+            # j_log_multiplier = 2*np.log(2*n*m/delta/2^j) 
+            j_log_multiplier = log_multiplier - j * TWO_LOG_2
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -261,8 +265,8 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
     """
     if m == 0:
         # Zero halving rounds requested
-        # Return coreset containing all indices
-        return(np.arange(X.shape[0]))
+        # Return 2D coreset array containing a single coreset (one row) with all indices
+        return(np.arange(X.shape[0], dtype=int)[np.newaxis,:])
     
     # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
@@ -336,7 +340,8 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
-            j_log_multiplier = log_multiplier - 2*(j-1)
+            # j_log_multiplier = 2*np.log(2*n*m/delta/2^j) 
+            j_log_multiplier = log_multiplier - j * TWO_LOG_2
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -352,7 +357,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(j_log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*(j_log_multiplier) ), b_sqd)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*j_log_multiplier), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:

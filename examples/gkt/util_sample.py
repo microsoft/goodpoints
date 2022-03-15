@@ -196,7 +196,7 @@ def compute_mcmc_params_p(filename, nmax=int(2**15), include_last=True, profilin
     
     params_p = {"saved_samples": True, 
                 "name": filename, 
-                "data_dir": "data",
+                "data_dir": "/accounts/projects/binyu/raaz.rsk/kernel_thinning/kernel_thinning_plus/data",
                 "nmax": nmax,
                 "burn_in": burn_in_params[filename],
                 "include_last" : include_last,

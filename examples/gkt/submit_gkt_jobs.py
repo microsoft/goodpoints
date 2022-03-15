@@ -117,7 +117,7 @@ def combinemmd_slurm_command(prefix, fix_param_str, m_max, d, total_reps, comput
 
 # define the slurm object
 partitions = ["high", "yugroup", "jsteinhardt", "low"]
-idx = 2
+idx = 1 # which partition to pick
 
 s = Slurm("convert", {"partition": partitions[idx], 
                  "c": 1
@@ -130,6 +130,8 @@ s_id = s.run('module load python; python compile_notebook.py run_generalized_kt_
 total_reps = 10 # set this to the max number of repetitions
 reps_per_job = 1
 combine = True # whether to combine all mmd results or not
+only_combine = False # whether we only run experiments to combine mmd results
+
 m_max = 7 ## max sample size processed is 2**(2*m_max); and the output size is 2**(m_max)
 computemmd = 1 #
 
@@ -138,7 +140,7 @@ computemmd = 1 #
 gauss_target = False # Gauss P
 mog_target = True # MoG P
 mcmc_target = False # MCMC P
-mcmc_file_idx = range(16, 20)  # range of MCMC files that need to be run
+mcmc_file_idx = range(12, 16)  # range of MCMC files that need to be run
 rerun = 0 # BUT STILL DOESN"T RERUN IF DURING COMBINING ; SO DON"T EXPECT RERUN IF TOTAL REPS = REPS_PER_JOB
 
 all_mcmc_filenames = ['Goodwin_RW','Goodwin_ADA-RW', 'Goodwin_MALA', 'Goodwin_PRECOND-MALA', 'Lotka_RW', 'Lotka_ADA-RW', 'Lotka_MALA', 'Lotka_PRECOND-MALA','Hinch_P_seed_1_temp_1', 'Hinch_P_seed_2_temp_1', 'Hinch_TP_seed_1_temp_8', 'Hinch_TP_seed_2_temp_8', 'Hinch_P_seed_1_temp_1_scaled', 'Hinch_P_seed_2_temp_1_scaled', 'Hinch_TP_seed_1_temp_8_scaled', 'Hinch_TP_seed_2_temp_8_scaled', 
@@ -149,13 +151,11 @@ all_mcmc_filenames = ['Goodwin_RW','Goodwin_ADA-RW', 'Goodwin_MALA', 'Goodwin_PR
 # 12-16 for Hinch Scaled, where the entire chain was standardized coordinate wise (centered, and scaled)
 # 16-24 for Goodwin/Lotka_float_step experiments with sampling indices computed using np.linspace, rather than np.arange
 
-
-
 if gauss_target:
-    ds = [2, 4, 10, 20, 50, 100] # for Gauss P
-    ds = [2, 4, 10, 100] # for Gauss P
+    ds = [2, 10, 20, 50, 100] #, 10, 20, 50, 100] # for Gauss P
+#     ds = [2, 4, 10, 100] # for Gauss P
 if mog_target:
-    Ms = [4, 6, 8] # M = number of mixtures for 2 dim MOG P
+    Ms = [4] #, 8] # M = number of mixtures for 2 dim MOG P
 if mcmc_target:
     ## NOTE for Hinch /Hinch_scale MCMC experiments m_max <=8 is permitted
     mcmc_files = np.array(all_mcmc_filenames)[mcmc_file_idx] # filename denotes the MCMC setting to be loaded;
@@ -164,34 +164,46 @@ if mcmc_target:
     # burn_in and sigma params are pre-loaded in the sample functions
     # samples are loaded from pkl files for Hinch dataset
 
-### kernels ### 
-nu = 2
-root_power = (nu+2) / (2*nu + 2) # 0.5 
-# = 2 * nu_eff / (d+1) + d / (d+1) for laplace
-# = (nu+2) / (2nu + 2) for bspline
+# MCMC P : 4 experiments each for Goodwin/Lotka-Volterra/Hinch
+#    - kernels : (1) Goodwin/Lotka:
+#    -               Laplace k with KT+ (power = 0.81)
+#    -               NOTE: the power kernel is matern with parameter nu_eff 
+#    -               where nu_eff = power * (d+1)/2 - d/2 or power = 2*nu_eff/(d+1) + d/(d+1)
+#    -               Since d = 4, we have nu_eff = 0.025
+#    -           (2) Hinch:
+#    -               IMQ k with KT+ with nu = 0.5 (power = 0.5)
 
-# list of kernels to be run
-kernel_list = ["bspline"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
-# list of powers for the kernels (should be same size as kernel_list)
-power_list = [root_power]*len(kernel_list) 
-# whether power kernel needs to be computed (should be same size as kernel_list)
-compute_power_list = [1]*len(kernel_list)
-# whether standard thinning needs to be computed (should be same size as kernel_list)
-standard_thin_flags = [1]*len(kernel_list)
-# whether target KT needs to be computed (should be same size as kernel_list)
-target_kt_flags = [1]*len(kernel_list)
-# whether KT+ needs to be computed (should be same size as kernel_list)
-kt_plus_flags = [1]*len(kernel_list)
-# whether power KT needs to be computed (should be same size as kernel_list)
-power_kt_flags = [1]*len(kernel_list) # same as root kt when root_power = 0.5
-
-# check sizes of list
-for t in [power_list, target_kt_flags, power_kt_flags, kt_plus_flags]:
-    assert(len(t) == len(kernel_list))
+# # check sizes of list
+# for t in [power_list, target_kt_flags, power_kt_flags, kt_plus_flags, nu_list]:
+#     assert(len(t) == len(kernel_list))
 
 
 fix_param_str = 'module load python; python3 run_generalized_kt_experiment.py ' 
 
+###  experiment combinations ###
+# in all cases, var/gamma parameter is set automatically; 
+# sigma = 1/gamma = sqrt(2d) for Gauss/MoG, and median distance in MCMC)
+# for non Gauss/Laplace cases we have to specify nu parameter
+#### settings
+if gauss_target:
+    # Gauss P : d = 2, 10, 20, 50, 100
+    #    - kernels : (1) Gauss k with t-KT and KT(rt)
+    
+    # list of kernels to be run
+    kernel_list = ["gauss"] 
+    # list of powers for the kernels (should be same size as kernel_list)
+    power_list = [root_power]
+    # whether power kernel needs to be computed (should be same size as kernel_list)
+    compute_power_list = [1]
+    # whether standard thinning needs to be computed (should be same size as kernel_list)
+    standard_thin_flags = [1]
+    # whether target KT needs to be computed (should be same size as kernel_list)
+    target_kt_flags = [1]
+    # whether KT+ needs to be computed (should be same size as kernel_list)
+    kt_plus_flags = [0]
+    # whether power KT needs to be computed (should be same size as kernel_list)
+    power_kt_flags = [1]
+    
 if gauss_target:
     # run gaussian experiments
     for kk, kernel in enumerate(kernel_list):
@@ -200,10 +212,10 @@ if gauss_target:
         for d in ds:
             temp_ids = []
             # if reps_per_job == total_reps the goal is to generally combine
-            if reps_per_job != total_reps:
+            if not only_combine:
                 for i in range(0, total_reps, reps_per_job):
                     singlejob_slurm_command(prefix, temp_ids, new_fix_param_str, m_max, d, i, 
-                                            reps_per_job, computemmd, s_id,
+                                            reps_per_job, computemmd, s_id=s_id,
                                             compute_power=compute_power_list[kk],
                                             power=power_list[kk],
                                            target_kt=target_kt_flags[kk],
@@ -216,7 +228,7 @@ if gauss_target:
             # combine the results once all runs done; wait for temp_ids to finish
             if combine:
                 if computemmd==1: combinemmd_slurm_command(prefix, new_fix_param_str, m_max, 
-                                            d, total_reps, computemmd, temp_ids,
+                                            d, total_reps, computemmd, temp_ids=temp_ids,
                                             compute_power=compute_power_list[kk],
                                                         power=power_list[kk],
                                            target_kt=target_kt_flags[kk],
@@ -225,19 +237,47 @@ if gauss_target:
                                             kt_plus=kt_plus_flags[kk],
                                             rerun=0,)
 
+
 if mog_target:
-    #  run MOG experiments
+    # MoG P : M = 4, 6, 8 in R^2
+    #    - kernels : (1) Gauss k with t-KT, KT(rt) (power = 0.5)
+    #    -           (2) Laplace k with KT+ (power = 0.7)
+    #    -               NOTE: the power kernel is matern with parameter nu_eff 
+    #    -               where nu_eff = power * (d+1)/2 - d/2 or power  = 2*nu_eff/(d+1) + d/(d+1)
+    #    -               Since d = 2, we have nu_eff = 0.05
+    #    -           (3) IMQ k with KT+ with nu = 0.5 (power = 0.5)
+    #    -           (4) B-spline with KT+ with nu = 2 (power = 2/3.) --nu is same as beta for b-spine--(power = (nu+2) / (2*nu + 2))
+
+    # list of kernels to be run
+    kernel_list = ["gauss", "laplace", "imq", "bspline"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
+    # list of powers for the kernels (should be same size as kernel_list)
+    power_list = [0.5, 0.7, 0.5, 2./3]
+    # whether power kernel needs to be computed (should be same size as kernel_list)
+    compute_power_list = [1, 1, 1, 1]
+    # whether standard thinning needs to be computed (should be same size as kernel_list)
+    standard_thin_flags = [1, 0, 0, 0] 
+    # whether target KT needs to be computed (should be same size as kernel_list)
+    target_kt_flags = [1, 0, 0, 0]
+    # whether KT+ needs to be computed (should be same size as kernel_list)
+    kt_plus_flags = [0, 1, 1, 1]
+    # whether power KT needs to be computed (should be same size as kernel_list)
+    power_kt_flags = [1, 0, 0, 0] # same as root kt when root_power = 0.5
+    # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
+    nu_list = [0., 0., 0.5, 2.] # nu is same as beta for bspline
+
+if mog_target:
+    # run MOG experiments
     d = 2 # doesn't matter; will be set internally automatically; just specify some int
     for kk, kernel in enumerate(kernel_list):
         new_fix_param_str = fix_param_str + ' -P mog' + ' -kernel '  + kernel
         for M in Ms:
             prefix =f"M{M}{kernel[0]}"
             temp_ids = []
-            if reps_per_job != total_reps:
+            if not only_combine:
                 for i in range(0, total_reps, reps_per_job):
                     singlejob_slurm_command(prefix, temp_ids, new_fix_param_str, m_max, 
                                             d, i, reps_per_job, computemmd, 
-                                            s_id, M=M, 
+                                            s_id=s_id, M=M, 
                                             compute_power=compute_power_list[kk],
                                            power=power_list[kk],
                                            target_kt=target_kt_flags[kk],
@@ -245,11 +285,11 @@ if mog_target:
                                             power_kt=power_kt_flags[kk],
                                             kt_plus=kt_plus_flags[kk],
                                            rerun=rerun,
-                                           nu=nu)
+                                           nu=nu_list[kk])
             if combine:
                 if computemmd==1: combinemmd_slurm_command(prefix, new_fix_param_str, m_max, 
                                             d, total_reps, computemmd, 
-                                            temp_ids, M=M,
+                                            temp_ids=temp_ids, M=M,
                                             compute_power=compute_power_list[kk],
                                             power=power_list[kk],
                                            target_kt=target_kt_flags[kk],
@@ -257,7 +297,43 @@ if mog_target:
                                             power_kt=power_kt_flags[kk],
                                             kt_plus=kt_plus_flags[kk],
                                                        rerun=0,
-                                                          nu=nu)
+                                           nu=nu_list[kk])
+
+# if mcmc_target:
+#     # list of kernels to be run
+#     kernel_list = ["laplace"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
+#     # list of powers for the kernels (should be same size as kernel_list)
+#     power_list = [0.81]
+#     # whether power kernel needs to be computed (should be same size as kernel_list)
+#     compute_power_list = [1]
+#     # whether standard thinning needs to be computed (should be same size as kernel_list)
+#     standard_thin_flags = [1] 
+#     # whether target KT needs to be computed (should be same size as kernel_list)
+#     target_kt_flags = [0]
+#     # whether KT+ needs to be computed (should be same size as kernel_list)
+#     kt_plus_flags = [1]
+#     # whether power KT needs to be computed (should be same size as kernel_list)
+#     power_kt_flags = [0] # same as root kt when root_power = 0.5
+#     # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
+#     nu_list = [0.] # nu is same as beta for bspline
+    
+if mcmc_target:
+    # list of kernels to be run
+    kernel_list = ["imq"] #["gauss", "sinc", "laplace", "imq", "matern", "bspline"]
+    # list of powers for the kernels (should be same size as kernel_list)
+    power_list = [0.5]
+    # whether power kernel needs to be computed (should be same size as kernel_list)
+    compute_power_list = [1]
+    # whether standard thinning needs to be computed (should be same size as kernel_list)
+    standard_thin_flags = [1] 
+    # whether target KT needs to be computed (should be same size as kernel_list)
+    target_kt_flags = [0]
+    # whether KT+ needs to be computed (should be same size as kernel_list)
+    kt_plus_flags = [1]
+    # whether power KT needs to be computed (should be same size as kernel_list)
+    power_kt_flags = [0] # same as root kt when root_power = 0.5
+    # the list of nu parameteter list (irrelevant for Gauss/Laplacae)
+    nu_list = [0.5] # nu is same as beta for bspline
     
 if mcmc_target:
     #  run MCMC experiments
@@ -271,7 +347,7 @@ if mcmc_target:
             if reps_per_job != total_reps:
                 for i in range(0, total_reps, reps_per_job):
                     singlejob_slurm_command(prefix, temp_ids, new_fix_param_str, m_max, d, i, 
-                                            reps_per_job, computemmd, s_id, 
+                                            reps_per_job, computemmd, s_id=s_id, 
                                             filename=filename, power=power_list[kk],
                                             compute_power=compute_power_list[kk],
                                            target_kt=target_kt_flags[kk],
@@ -281,7 +357,7 @@ if mcmc_target:
                                            rerun=rerun)
             if combine:
                 if computemmd==1: combinemmd_slurm_command(prefix, new_fix_param_str, m_max, d, total_reps, 
-                                                computemmd, temp_ids, 
+                                                computemmd, temp_ids=temp_ids, 
                                                 filename=filename, power=power_list[kk],
                                             compute_power=compute_power_list[kk],
                                            target_kt=target_kt_flags[kk],

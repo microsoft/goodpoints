@@ -253,6 +253,8 @@ def pp_kernel(params_k, params_p):
     
     if "sin" in params_p["name"]:
         # return PnPn with respect to Sin loaded in Pnmax, and save the answer
+        # load_store can be used if we know that the sin is same across experiments, which it typically is not
+        # TBD Fix this part of the code
         filename =  "./data/{}_pnpn_nmax{}_k_{}_var{}.pkl".format(params_p["name"], params_p["Pnmax"].shape[0], params_k["name"], params_k["var"])
         return(pnpn_kernel(params_k, params_p["Pnmax"], load_store=False, load_from=filename))
     

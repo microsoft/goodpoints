@@ -4,8 +4,8 @@ Usage: python compile_notebook.py yournotebook.ipynb
 """
 import subprocess, sys
 
-from kernelthinning.util import fprint  # for printing while flushing buffer
-from kernelthinning.tictoc import tic, toc # for timing blocks of code
+from goodpoints.util import fprint  # for printing while flushing buffer
+from goodpoints.tictoc import tic, toc # for timing blocks of code
 def compile_notebook(ntbk):
     """Converts a jupyter notebook to a Python script
 

@@ -57,7 +57,7 @@ def init_parser():
     
     # set to non-zero when you want the construct functions to print coresets and mmds
     # *** THIS IS A FLAG PARAMETER (will be converted to boolean by format_args) ***
-    parser.add_argument('--verbose', '-v', type=int, default=0, 
+    parser.add_argument('--verbose', '-v', type=int, default=1, 
                 help="whether to print coresets and mmds, set to anything other than 0 ") 
     
     # whether to compute mmd or not--load from disk when the file exists 
@@ -99,9 +99,9 @@ def init_parser():
     parser.add_argument('--rh2','-rh2',type =int , default = 0,
                        help="whether to symmetrize halve output in compress") 
     
-    # the oversampling parameter g for compress (called alpha here)
-    parser.add_argument('--alpha','-alp',type=int, default = 0,
-                       help="the oversampling parameter g for compress (called alpha here)") 
+    # the oversampling parameter g for compress
+    parser.add_argument('--g','-g',type=int, default = 0,
+                       help="the oversampling parameter g for compress (called g here)") 
     
 
     ################ target distribution related parameters ################
@@ -111,7 +111,8 @@ def init_parser():
     # filename when dealing with MCMC target in compute_mcmc_params functions in util_sample.py
     parser.add_argument('--filename', '-f', type=str, default=None,
                            help="name for MCMC target") 
-    parser.add_argument('--mcmcfolder', '-folder', type=str, default='data',
+    parser.add_argument('--mcmcfolder', '-folder', type=str, 
+                        default='/accounts/projects/binyu/raaz.rsk/kernel_thinning/kernel_thinning_plus/data',
                            help="folder to load MCMC data from, and save some \
                             PPk like objects to save time while computing mmd") 
     

@@ -26,7 +26,7 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
     
     Args:
       X: Input sequence of sample points with shape (n, d)
-      m: Number of halving rounds
+      m: Number of halving rounds (integer >= 0)
       split_kernel: Kernel function used by KT-SPLIT (typically a square-root kernel, krt);
         split_kernel(y,X) returns array of kernel evaluations between y and each row of X
       swap_kernel: Kernel function used by KT-SWAP (typically the target kernel, k);
@@ -41,7 +41,11 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
       verbose: If False do not print intermediate time taken, if True print that info when m>=7
       
     """
-    # Partition points into 2^m candidate coresets of size floor(n/2^m)
+    if m == 0:
+        # Zero halving rounds requested
+        # Return coreset containing all indices
+        return(np.arange(X.shape[0], dtype=int))
+
     verbose = (verbose and (m>=7))
     
     fprint('Running kt.split', verbose=verbose)
@@ -51,9 +55,9 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, m
     
     fprint('Running kt.swap', verbose=verbose)
     tic()
-    coresets = swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK, unique=unique)
+    coreset = swap(X, coresets, swap_kernel, store_K=store_K, meanK=meanK, unique=unique)
     toc(print_elapsed=verbose)
-    return(coresets)
+    return(coreset)
 
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% KT Split Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,6 +80,9 @@ def split(X, m, kernel, delta=0.5, seed=None, store_K=False, verbose=False):
     return(split_K(X, m, kernel, delta=delta, seed=seed, verbose=verbose) if store_K
            else split_X(X, m, kernel, delta=delta, seed=seed, verbose=verbose))
 
+# Constant used by split functions
+TWO_LOG_2 = 2*np.log(2)
+
 def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     """Returns 2^m kernel thinning coresets of size floor(n/2^m) as a 2D array
     (uses O(nd) space, memory efficient for small d; slower in computation time
@@ -91,8 +98,13 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
       seed: Random seed to set prior to generation; if None, no seed will be set
       verbose: If False do not print intermediate time taken, if True print that info
     """
-    # Function which returns kernel value for two arrays of row indices of X
+    if m == 0:
+        # Zero halving rounds requested
+        # Return 2D coreset array containing a single coreset (one row) with all indices
+        return(np.arange(X.shape[0], dtype=int)[np.newaxis,:])
+    
     verbose = verbose and (m>=7)
+    # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
         return(kernel(X[ii], X[jj]))
     
@@ -110,7 +122,7 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n/delta)
+    log_multiplier = 2*np.log(2*n*m/delta)
 
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 
@@ -164,6 +176,11 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
+            # j_log_multiplier = 2*np.log(2*n*m/delta/2^j) 
+            #                  = 2*np.log(2*n*m/delta) - j * 2 log(2)
+            #                  = log_multiplier - j * TWO_LOG_2
+            # the term is 2^{j-1} in the paper because j starts at 1; here j starts at 0
+            j_log_multiplier = log_multiplier - j * TWO_LOG_2
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -180,8 +197,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                 # Compute b^2 = ||f||^2 = ||k(x1,.) - k(x2,.)||_k^2
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
-                # a = max(b sig sqrt(log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*log_multiplier), b_sqd)
+                # a = max(b sig sqrt(j_log_multiplier), b^2)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*j_log_multiplier), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:
@@ -249,6 +266,11 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
         no seed will be set
       verbose: If False do not print intermediate time taken, if True print that info
     """
+    if m == 0:
+        # Zero halving rounds requested
+        # Return 2D coreset array containing a single coreset (one row) with all indices
+        return(np.arange(X.shape[0], dtype=int)[np.newaxis,:])
+    
     # Function which returns kernel value for two arrays of row indices of X
     def k(ii, jj):
         return(kernel(X[ii], X[jj]))
@@ -267,7 +289,7 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
     # sig_sqd[j][j2] determines the threshold for halving coresets[j][j2]
     sig_sqd = dict()
     # Store multiplier to avoid recomputing
-    log_multiplier = 2*np.log(4*n/delta)
+    log_multiplier = 2*np.log(2*n*m/delta)
         
     for j in range(m+1):
         # Initialize coresets[j][j2] for each j2 < 2^j to array of size n/2^j 
@@ -321,6 +343,8 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
             parent_KC = KC[j]
             child_KC = KC[j+1]
             num_parent_coresets = parent_coresets.shape[0]
+            # j_log_multiplier = 2*np.log(2*n*m/delta/2^j) 
+            j_log_multiplier = log_multiplier - j * TWO_LOG_2
             # Consider each parent coreset in turn
             for j2 in range(num_parent_coresets):
                 parent_coreset = parent_coresets[j2]
@@ -335,8 +359,8 @@ def split_K(X, m, kernel, c=None, delta=0.5, seed=None, verbose=False):
                 # Compute b^2 = ||f||^2 = ||k(x1,.) - k(x2,.)||_k^2
                 b_sqd = diagK[point2] + diagK[point1] - 2*K12
                 # Update threshold for halving parent coreset
-                # a = max(b sig sqrt(log_multiplier), b^2)
-                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*log_multiplier), b_sqd)
+                # a = max(b sig sqrt(j_log_multiplier), b^2)
+                thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*j_log_multiplier), b_sqd)
                 if sig_sqd[j][j2] == 0:
                     sig_sqd[j][j2] = b_sqd
                 elif thresh != 0:
@@ -476,9 +500,9 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         kernel(y,X) returns array of kernel evaluations between y and each row of X
       meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
         used to speed up computation when not None
-       unique: If True, constrains the output to never contain the same row index more than once
-               (logic of point-by-point swapping is altered to ensure MMD improvement
-               as well as that the coreset does not contain any repeated points at any iteration)
+      unique: If True, constrains the output to never contain the same row index more than once
+              (logic of point-by-point swapping is altered to ensure MMD improvement
+              as well as that the coreset does not contain any repeated points at any iteration)
     """
     n = X.shape[0]
 
@@ -551,144 +575,6 @@ def refine(X, coreset, kernel, meanK=None, unique=False):
         if unique:
             sufficient_stat[best_point] = np.inf
     return(coreset)
-
-def refine_all(X, coresets, kernel, meanK=None, seed=None, unique=True):
-    """
-    Given a partition of X in coresets, refine each candidate coreset (rows of coresets) 
-    with turn by turn swap of points between rows while maintaing the partition property. 
-    Swaps are made only when the MMD of the (new) rows to all points in X is improved. 
-    We then return a uniformly random candidate.
-    
-    Args:
-      X: Input sequence of sample points with shape (n, d)
-      coresets: 2D array with each row specifying the row indices of X belonging to a coreset
-      kernel: Kernel function (typically the target kernel, k);
-        kernel(y,X) returns array of kernel evaluations between y and each row of X
-      meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
-        used to speed up computation when not None
-       unique: If True, constrains the output to never contain the same row index more than once
-               (logic of point-by-point swapping is altered to ensure MMD improvement
-               as well as that the coreset does not contain any repeated points at any iteration)
-    """
-    n = X.shape[0]
-
-    # Initialize new KT coresets to original coresets
-    coresets = np.copy(coresets)
-    # number of coresets, and coreset size (each are of the same size)
-    num_coresets, coreset_size = coresets.shape[0], coresets.shape[1]
-     
-    
-    # Initialize sufficient kernel matrix statistics
-    # sufficient_stat = twoncoresumK + ndiagK - twomeanK where
-    #   ndiagK[ii] = diagonal element of kernel matrix, kernel(X[ii], X[ii]) / coreset_size
-    #   twomeanK[ii] = 2 * the mean of kernel(X[ii], X)
-    #   twoncoresumK[ii] = 2 * the sum of kernel(X[ii], X[coreset]) / coreset_size
-    two_over_coreset_size = 2/coreset_size
-    
-    # Initialize indices for coresets; i-th index tells which row in coresets does i-th point belong to, i.e., X[i] is in coresets[coreset_indices[i]]
-    coreset_indices = np.empty(n, dtype=int)
-    # Initialize locations of points inside the corresponding coreset; point_locations[i] = np.where(coresets[coreset_indices[i]]==X[i])
-    point_locations = np.empty(n, dtype=int)
-    # Initialize coreset indicator of size  num_coresets x n, the cc-th row takes value True at coreset indices of cc-th coreset
-    coreset_indicators = np.zeros((num_coresets, n), dtype=bool)
-    # loop over all coresets
-    for cc, coreset in enumerate(coresets):
-        coreset_indicators[cc, coreset] = True
-        coreset_indices[coreset] = cc # set the value at indices from coreset to cc (the row corresponding to coreset in coresets)
-        point_locations[coreset] = np.arange(len(coreset_size), dtype=int) # points from coreset are assigned the values of locations in coreset
-    
-    if meanK is None:
-        sufficient_stat = np.empty((num_coresets, n)) # matrix of suff_stat of size num_coresets x n
-        # loop over all coresets
-        for cc, coreset in enumerate(coresets):
-            for ii in range(n):
-                # if unique then set sufficient_stat for coreset indices to infinity
-                if unique and coreset_indicators[cc, ii]:
-                    sufficient_stat[cc, ii] = np.inf
-                else:
-                    # Kernel evaluation between xi and every row in X
-                    kii =  kernel(X[ii, np.newaxis], X)
-                    sufficient_stat[cc, ii] = 2*(np.mean(kii[coreset])-np.mean(kii)) + kii[ii]/coreset_size    
-                
-    else:
-        # Initialize to kernel diagonal normalized by coreset_size - 2 * meanK; same value for all coresets
-        sufficient_stat = np.tile(kernel(X, X)/coreset_size - 2 * meanK, (num_coresets, 1)) 
-        # loop over all coresets
-        for cc, coreset in enumerate(coresets):
-            # Add in contribution of coreset to its sufficient stat
-            for ii in range(n):
-                # if unique then set sufficient_stat for coreset indices to infinity
-                if unique and coreset_indicators[cc, ii]:
-                    sufficient_stat[cc, ii] = np.inf
-                else:
-                    # Kernel evaluation between xi and every coreset row in X
-                    kiicore =  kernel(X[ii, np.newaxis], X[coreset])
-                    sufficient_stat[cc, ii] += 2*np.mean(kiicore)
-    
-    # loop over all coresets
-    for cc in range(num_coresets):
-        # Consider each coreset point in turn 
-        for coreset_idx in range(coreset_size):
-            # if unique have to compute sufficient stats for the current coreset point
-            if unique:
-                # initially all coreset indices have sufficient_stat set to infinity; 
-                # before altering any coreset point, we compute the sufficient_stat for it, and
-                # compare replacing it with every other *non coreset* point; the best point (bp)
-                # then takes the spot of the point in consideration with bp's sufficient_stat set to infty.
-                # thus at each iteration of the for loop, all the current coreset elements except the one 
-                # in consideration have sufficient_stats set to infty
-                cidx = coresets[cc, coreset_idx] # the original location of coreset_idx in X
-                if meanK is None:
-                    # Kernel evaluation between x at cidx and every row in X
-                    kcidx = kernel(X[cidx, np.newaxis], X)
-                    sufficient_stat[cc, cidx] = 2*(np.mean(kcidx[coresets[cc]])-np.mean(kcidx)) + kcidx[cidx]/coreset_size    
-                else:
-                    kcidxcore =  kernel(X[cidx, np.newaxis], X[coresets[cc]])
-                    sufficient_stat[cc, cidx] = kernel(X[cidx, np.newaxis], X[cidx, np.newaxis])/coreset_size - 2 * meanK[cidx] 
-                    sufficient_stat[cc, cidx] += 2*np.mean(kcidxcore)
-
-                # Remove the contribution of coreset_idx point from the normalized coreset sum in sufficient stat of cc-th coreset
-                sufficient_stat[cc] -= kernel(X[cidx, np.newaxis], X)*two_over_coreset_size
-                # Find the input point that would reduce MMD the most
-                best_point = np.argmin(sufficient_stat[cc])
-
-                # check if it reduces the sufficient_stat of the other coreset it belongs to
-                cc_best = coreset_indices[best_point] # this is the coreset best point belongs to
-                # update sufficient_stat of cc_best coreset as if trying to swap out best_point; so first we compute
-                # the sufficient stat for best_point for that coresets[cc_best]
-                if meanK is None:
-                    # Kernel evaluation between x at best_point and every row in X
-                    kcbest = kernel(X[best_point, np.newaxis], X)
-                    sufficient_stat[cc_best, best_point] = 2*(np.mean(kcbest[coresets[cc_best]])-np.mean(kcbest)) + kcbest[cidx_best]/coreset_size    
-                else:
-                    kcbest =  kernel(X[best, np.newaxis], X[coresets[cc_best]])
-                    sufficient_stat[cc_best, best_point] = kernel(X[best_point, np.newaxis], X[best_point, np.newaxis])/coreset_size - 2 * meanK[best_point] 
-                    sufficient_stat[cc_best, best_point] += 2*np.mean(kcbest)
-                # now remove the contribution of best_points
-                sufficient_stat[cc_best] -= kernel(X[best_point, np.newaxis], X)*two_over_coreset_size
-
-                # check if the point in consideration is actually better compared to the point being removed from cc_idx_best coreset
-                if sufficient_stat[cc_best, cidx] > sufficient_stat[cc_best, best_point]:
-                    # don't swap the points; no need to update coresets, and point_locations
-                    cc_point, cc_best_point = cidx, best_point
-                else:
-                    # swap the points  if suff_stat <=
-                    cc_point, cc_best_point = best_point, cidx
-                    # change the coresets and point_locations
-                    coresets[cc, coreset_idx], coresets[cc_best, point_locations[best_point]] = cc_point, cc_best_point
-                    point_locations[cc_point], point_locations[cc_best_point] = coreset_idx, point_locations[best_point]
-
-                # update sufficient_stat based on the assigned points
-                sufficient_stat[cc] += kernel(X[cc_point, np.newaxis], X)*two_over_coreset_size
-                sufficient_stat[cc_best] += kernel(X[cc_best_point, np.newaxis], X)*two_over_coreset_size
-                
-                # sufficient_stat is set to infty for the points in the coresets
-                sufficient_stat[cc, cc_point] = np.inf
-                sufficient_stat[cc_best, cc_best_point] = np.inf
-    
-    # return a random coreset
-    return(coresets[npr.default_rng(seed).choice(num_coresets)])
-
 
 def kernel_matrix_row_mean(X, kernel):
     """Returns the mean of each kernel matrix row

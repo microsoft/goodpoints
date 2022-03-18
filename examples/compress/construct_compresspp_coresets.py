@@ -37,7 +37,7 @@ def construct_compresspp_coresets(args):
     3. Return the coreset if args.returncoreset == True
     4. Return the mmd if args.returncoreset == False and args.computemmd == True
 
-    The function takes multiple input arguments as a dictionary that isnormally processed by 
+    The function takes multiple input arguments as a dictionary that is normally processed by 
     the parser function. One can directly specify / access the arguments as args.argument where 
     all the arguments are listed below:
     (all arguments are optional, and the default value is specified below)
@@ -62,7 +62,7 @@ def construct_compresspp_coresets(args):
                                      currently takes value in {kt, herding}, can extend the list by changing code
                                      at "SUPPORT FOR NEW THINNING ALGORITHMS" mark in construct_compresspp_coresets.py  
     symm1        : (bool; default True) whether to symmetrize halve output in compress
-    alpha        : (int; default 0) the oversampling parameter g for compress (called alpha in the code)
+    g            : (int; default 0) the oversampling parameter g for compress
     krt          : (bool; default False) whether to use root kernel when using kt in compress++; sqrt kernel
                                          needs to be computed by compute_params_k in util_k_mmd.py
     M            : (int; default None) number of mixture for diag mog in d=2, used only when setting = mog
@@ -75,7 +75,7 @@ def construct_compresspp_coresets(args):
     '''
     
     pathlib.Path(args.resultsfolder).mkdir(parents=True, exist_ok=True)
-    assert(args.alpha <= args.size) # for compress++ to work oversampling parameter should not be larger than log_4 input size
+    assert(args.g <= args.size) # for compress++ to work oversampling parameter should not be larger than log_4 input size
     
     ####### seeds #######
     seed_sequence = np.random.SeedSequence(entropy = args.seed)
@@ -92,10 +92,15 @@ def construct_compresspp_coresets(args):
     params_k_split, params_k_swap, split_kernel, swap_kernel = compute_params_k(d=d, var_k=var_k, 
                                                         use_krt_split=args.krt, name="gauss") 
     
-    # probability threshold
+    # Specify base failure probability for kernel thinning
     delta = 0.5
-    
-    
+    # Each Compress Halve call applied to an input of length l uses KT( l^2 * halve_prob ) 
+    halve_prob = delta / ( 4*(4**args.size)*(2**args.g)*( args.g + (2**args.g) * (args.size  - args.g) ) )
+    ###halve_prob = 0 if size == g else delta * .5 / (4 * (4**size) * (4 ** g) * (size - g) ) ###
+    # Each Compress++ Thin call uses KT( thin_prob )
+    thin_prob = delta * args.g / (args.g + ( (2**args.g)*(args.size - args.g) ))
+    ###thin_prob = .5 
+        
     # mmd array
     mmds = np.zeros(args.repn)
     
@@ -110,25 +115,26 @@ def construct_compresspp_coresets(args):
         #### SUPPORT FOR NEW THINNING ALGORITHMS ####
         ## to add support for new thinning algorithms, add if/else logic here, and pass the appropriate flag in args.compressalg while calling this function
         ## currently this code adds the logic for kt.thin, and herding
-        
+
         if args.compressalg == "kt":
             if args.symm1:
-                halve = compress.symmetrize(lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel, seed = halve_rng, unique=True, delta = delta*len(x)/args.size))
+                halve = compress.symmetrize(lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel, seed = halve_rng, unique=True, delta = halve_prob*(len(x)**2)))
             else:
-                halve = lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel , seed = halve_rng, delta = delta*len(x)/args.size)
+                halve = lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel , seed = halve_rng, delta = halve_prob*(len(x)**2))
 
         if args.compressalg == "herding":
-            if args.symm1: # when symmetrize is set to true; necessary for determinstic algorithms with compress for the guarantees
+            if args.symm1: 
                 halve = compress.symmetrize(partial(herding, m=1, kernel = swap_kernel, unique=True), seed = halve_rng)
             else:
                 halve = partial(herding, m=1, kernel = swap_kernel, unique=True)
 
         thin_rng = npr.default_rng(thin_seed)
+
         if args.compressalg == "kt":
-            thin = partial(kt.thin, m=args.alpha , split_kernel = split_kernel, swap_kernel = swap_kernel, 
-                           seed = thin_rng, delta= (delta*(2**args.alpha))/np.sqrt(args.size))
+            thin = partial(kt.thin, m=args.g, split_kernel = split_kernel, swap_kernel = swap_kernel, 
+                           seed = thin_rng, delta = thin_prob)
         if args.compressalg == "herding":
-            thin = partial(herding, m = args.alpha, kernel = swap_kernel, unique = True)
+            thin = partial(herding, m = args.g, kernel = swap_kernel, unique = True)
             
         prefix = "Compresspp" 
         # change prefix to accommodate for the two variations
@@ -139,7 +145,7 @@ def construct_compresspp_coresets(args):
                           delta=delta, sample_seed=sample_seed, thin_seed=thin_seed, 
                           compress_seed=compress_seed,
                           compressalg=args.compressalg, 
-                          alpha=args.alpha,
+                          g=args.g,
                           )
 
         # Include replication number in filename
@@ -152,14 +158,23 @@ def construct_compresspp_coresets(args):
             fprint(f"Running Compress++ experiment with template {filename}.....")
             print('(re) Generating coreset')
             X = sample(4**(args.size),params_p, seed = sample_seed)
-            coreset = compress.compresspp(X, halve, thin, args.alpha)
+            coreset = compress.compresspp(X, halve, thin, args.g)
 
             with open(filename, 'wb') as file: pkl.dump(coreset, file, protocol=pkl.HIGHEST_PROTOCOL)
             return(X, coreset)
         def fun_compute_mmds():
             print("computing mmd")
             if 'X' not in globals(): X = sample(4**(args.size),params_p, seed = sample_seed)
-            mmd = np.sqrt(squared_mmd(params_k=params_k_swap,  params_p=params_p, xn=X[coreset]))
+            if params_p["saved_samples"]:# if MCMC data compute MMD(Sin)
+                params_p_eval = dict()
+                params_p_eval["data_dir"] = params_p["data_dir"]
+                params_p_eval["d"] = d
+                params_p_eval["name"] =  params_p["name"]+ "_sin"
+                params_p_eval["Pnmax"] = X
+                params_p_eval["saved_samples"] = False
+            else:
+                params_p_eval = params_p
+            mmd = np.sqrt(squared_mmd(params_k=params_k_swap,  params_p=params_p_eval, xn=X[coreset]))
             return(mmd)
         
         if args.rerun or not os.path.exists(filename):

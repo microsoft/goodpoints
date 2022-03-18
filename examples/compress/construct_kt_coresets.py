@@ -101,7 +101,7 @@ def construct_kt_coresets(args):
                           sample_seed=sample_seed, thin_seed=thin_seed, 
                           compress_seed=None,
                           compressalg=None, 
-                          alpha=None,
+                          g=None,
                           )
         
 

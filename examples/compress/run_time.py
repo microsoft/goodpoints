@@ -59,7 +59,7 @@ def run_time(args):
                                      currently takes value in {kt, herding}, can extend the list by changing code
                                      at "SUPPORT FOR NEW THINNING ALGORITHMS" mark in construct_compresspp_coresets.py  
     symm1        : (bool; default True) whether to symmetrize halve output in compress
-    alpha        : (int; default 0) the oversampling parameter g for compress (called alpha in the code)
+    g            : (int; default 0) the oversampling parameter g for compress
     krt          : (bool; default False) whether to use root kernel when using kt in compress++; sqrt kernel
                                          needs to be computed by compute_params_k in util_k_mmd.py
     M            : (int; default None) number of mixture for diag mog in d=2, used only when setting = mog
@@ -127,25 +127,25 @@ def run_time(args):
             testNTimer = timeit.Timer(partial(herding, X, args.size, swap_kernel))
 
         if args.thinalg == "compresspp":
-            assert(args.alpha <= args.size) # for compress++ to work
+            assert(args.g <= args.size) # for compress++ to work
             if args.compressalg == "kt":
-                filename = filename.format(f"_g{args.alpha}_kt_symm{str(args.symm1)}")
-                thin = partial(kt.thin, m=args.alpha , split_kernel = split_kernel, swap_kernel = swap_kernel, 
-                           seed = thin_rng, delta= (delta*(2**args.alpha))/np.sqrt(args.size))
+                filename = filename.format(f"_g{args.g}_kt_symm{str(args.symm1)}")
+                thin = partial(kt.thin, m=args.g , split_kernel = split_kernel, swap_kernel = swap_kernel, 
+                           seed = thin_rng, delta= (delta*(2**args.g))/np.sqrt(args.size))
                 if args.symm1:
                     halve = symmetrize(lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel , seed = halve_rng, unique=True, delta = delta*len(x)/args.size))
                 else:
                     halve = lambda x: kt.thin(X = x, m=1, split_kernel = split_kernel, swap_kernel = swap_kernel, seed = halve_rng, delta = delta*len(x)/args.size)
                 
             if args.compressalg == "herding":
-                filename = filename.format(f"_g{args.alpha}_herding_symm{str(args.symm1)}")
-                thin = partial(herding, m = args.alpha, kernel = swap_kernel, unique = True)
+                filename = filename.format(f"_g{args.g}_herding_symm{str(args.symm1)}")
+                thin = partial(herding, m = args.g, kernel = swap_kernel, unique = True)
                 if args.symm1:
                     halve = symmetrize(partial(herding, m=1, kernel = swap_kernel, unique=True), seed = halve_rng)
                 else:
                     halve = partial(herding, m=1, kernel = swap_kernel, unique=True)
             
-            testNTimer = timeit.Timer(partial(compresspp, X, halve, thin, args.alpha))
+            testNTimer = timeit.Timer(partial(compresspp, X, halve, thin, args.g))
         
         if args.rerun or not os.path.exists(filename):
             if args.verbose:

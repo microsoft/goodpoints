@@ -12,10 +12,10 @@ import os
 import os.path
 
 # import kernel thinning
-from kernelthinning import kt # kt.thin is the main thinning function; kt.split and kt.swap are other important functions
-from kernelthinning.util import isnotebook # Check whether this file is being executed as a script or as a notebook
-from kernelthinning.util import fprint  # for printing while flushing buffer
-from kernelthinning.tictoc import tic, toc # for timing blocks of code
+from goodpoints import kt # kt.thin is the main thinning function; kt.split and kt.swap are other important functions
+from goodpoints.util import isnotebook # Check whether this file is being executed as a script or as a notebook
+from goodpoints.util import fprint  # for printing while flushing buffer
+from goodpoints.tictoc import tic, toc # for timing blocks of code
 
 
 # utils for generating samples, evaluating kernels, and mmds

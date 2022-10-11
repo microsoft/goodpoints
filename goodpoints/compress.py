@@ -8,8 +8,9 @@ Implementations of the Compress, Compress++, and Symmetrize metaprocedures of
 
 import numpy as np
 import numpy.random as npr
+from kt import largest_power_of_two
 
-def compress(X, halve, g = 0, indices = None):
+def compress(X, halve, g = 0, indices = None, seed = None):
     """Returns Compress coreset of size 2^g sqrt(n) or, if indices is not None, 
     of size 2^g sqrt(len(indices)) as row indices into X
 
@@ -27,7 +28,11 @@ def compress(X, halve, g = 0, indices = None):
     # If the number of input points matches the target coreset size, we're done
     if len(indices) == 4**g:
         return indices
-    else: 
+    else:
+        rng = npr.default_rng(seed)
+        log_base_four = largest_power_of_two(len(indices))//2
+        if not(4**(log_base_four//2) == len(indices)):
+             indices = rng.choice(indices, 4**(log_base_four))
         # Partition the set input indices into four disjoint sets
         partition_set = np.array_split(indices,4)
         # Initialize an array to hold outputs of recursive calls
@@ -45,7 +50,7 @@ def compress(X, halve, g = 0, indices = None):
         return combined_compress_output[indices_into_combined]
 
 
-def compresspp(X, halve, thin, g):
+def compresspp(X, halve, thin, g, seed = None):
     """Returns Compress++(g) coreset of size sqrt(n) as row indices into X
 
     Args: 
@@ -57,7 +62,7 @@ def compresspp(X, halve, thin, g):
         g: Oversampling factor
     """
     # Use compress to create a coreset of size 2^g sqrt(n)
-    intermediate_coreset = compress(X, halve, g)
+    intermediate_coreset = compress(X, halve, g , seed)
     # Use thin to reduce size from 2^g sqrt(n) to sqrt(n)
     return intermediate_coreset[ thin(X[intermediate_coreset]) ]
 

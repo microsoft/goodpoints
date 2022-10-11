@@ -26,7 +26,7 @@ def compress(X, halve, g = 0, indices = None, seed = None):
     if indices is None:
         indices = np.arange(X.shape[0], dtype=int)
     # If the number of input points matches the target coreset size, we're done
-    if len(indices) == 4**g:
+    if len(indices) <= 4**g:
         return indices
     else:
         rng = npr.default_rng(seed)

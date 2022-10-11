@@ -43,7 +43,7 @@ def compress(X, halve, g = 0, indices = None, seed = None):
         for x in partition_set:
             # Recursively call compress on the four subsets and
             # add its output to the list
-            compress_output = compress(X, halve, g, indices = x)
+            compress_output = compress(X, halve, g, indices = x, seed = seed)
             compress_outputs.append(compress_output)
         # Merge outputs of the recursive calls to compress
         combined_compress_output = np.concatenate(compress_outputs)

@@ -29,8 +29,11 @@ def compress(X, halve, g = 0, indices = None, seed = None):
     if len(indices) <= 4**g:
         return indices
     else:
+        # Initialize rng
         rng = npr.default_rng(seed)
+        # Compute the largest power of 4 that divides the number of input points
         log_base_four = largest_power_of_two(len(indices))//2
+        # If the input size is not a power of 4, then reduce the size to the closest power of 4 using random subsampling
         if not(4**(log_base_four//2) == len(indices)):
              indices = rng.choice(indices, 4**(log_base_four))
         # Partition the set input indices into four disjoint sets

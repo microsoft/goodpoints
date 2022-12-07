@@ -9,13 +9,25 @@ Implementations of the Compress, Compress++, and Symmetrize metaprocedures of
 import numpy as np
 import numpy.random as npr
 
+def largest_power_of_four(n):
+    """Returns largest power of four less than or equal to n
+    """
+    return 4**( (n.bit_length() - 1 )//2)
+     
 def compress(X, halve, g = 0, indices = None):
-    """Returns Compress coreset of size 2^g sqrt(n) or, if indices is not None, 
-    of size 2^g sqrt(len(indices)) as row indices into X
+    """Returns Compress coreset of size 2^g sqrt(n') as row indices into X.
+    Here, n' is the largest power of 4 less than or equal to n (if indices 
+    is None) or to len(indices) (if indices is not None).
+
+    Note: When the number of indices to be compressed is not a power of 4, 
+        the code reduces the index count to n' using standard thinning 
+        (i.e., by selecting every t-th index) prior to running Compress.
 
     Args:
         X: Input sequence of sample points with shape (n, d)
-        halve: Algorithm that takes an input a set of points and returns indices a set of indices to a subset of points with cardinality half of the input set 
+        halve: Algorithm that takes an input a set of points and returns 
+          indices a set of indices to a subset of points with cardinality 
+          half of the input set 
         g: Oversampling parameter, a nonnegative integer
         indices: If None, compresses X and returns coreset of size 2^g sqrt(n); 
           otherwise, compresses X[indices] and returns coreset of size 
@@ -24,26 +36,38 @@ def compress(X, halve, g = 0, indices = None):
     # Check if indices is None in which case it sets it to range(size(X))
     if indices is None:
         indices = np.arange(X.shape[0], dtype=int)
-    # If the number of input points matches the target coreset size, we're done
-    if len(indices) == 4**g:
-        return indices
-    else: 
-        # Partition the set input indices into four disjoint sets
-        partition_set = np.array_split(indices,4)
-        # Initialize an array to hold outputs of recursive calls
-        compress_outputs = []
-        for x in partition_set:
-            # Recursively call compress on the four subsets and
-            # add its output to the list
-            compress_output = compress(X, halve, g, indices = x)
-            compress_outputs.append(compress_output)
-        # Merge outputs of the recursive calls to compress
-        combined_compress_output = np.concatenate(compress_outputs)
-        # Run halving on the combined output
-        indices_into_combined = halve(X[combined_compress_output])
-        # Return indices into the original input set X
-        return combined_compress_output[indices_into_combined]
 
+    # If the number of indices is not a power of 4, thin down to the nearest power of 4
+    # using standard thinning (i.e., by retaining every t-th index)
+    n = len(indices)
+    nearest_pow_four = largest_power_of_four(n)
+    if nearest_pow_four != n:
+        indices = indices[np.linspace(0, n-1, nearest_pow_four, dtype=int)]
+
+    # Helper function for recursive calls to Compress
+    four_to_g = 4**g
+    def _compress(indices):
+        # If the number of input points matches the target coreset size, we're done
+        if len(indices) <= four_to_g:
+            return indices
+        else:
+            # Partition the set input indices into four disjoint sets
+            partition_set = np.array_split(indices,4)
+            # Initialize an array to hold outputs of recursive calls
+            compress_outputs = []
+            for x in partition_set:
+                # Recursively call compress on the four subsets and
+                # add its output to the list
+                compress_output = _compress(x)
+                compress_outputs.append(compress_output)
+            # Merge outputs of the recursive calls to compress
+            combined_compress_output = np.concatenate(compress_outputs)
+            # Run halving on the combined output
+            indices_into_combined = halve(X[combined_compress_output])
+            # Return indices into the original input set X
+            return combined_compress_output[indices_into_combined]
+
+    return _compress(indices)
 
 def compresspp(X, halve, thin, g):
     """Returns Compress++(g) coreset of size sqrt(n) as row indices into X

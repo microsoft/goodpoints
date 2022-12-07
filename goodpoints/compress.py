@@ -9,8 +9,6 @@ Implementations of the Compress, Compress++, and Symmetrize metaprocedures of
 import numpy as np
 import numpy.random as npr
 
-import warnings
-
 def largest_power_of_four(n):
     """Returns largest power of four less than or equal to n
     """

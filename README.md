@@ -71,8 +71,6 @@ Code in the `examples` directory uses the `goodpoints` package to recreate the e
 by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. For the MCMC examples, it assumes that necessary data was downloaded and pre-processed following the steps listed in `examples/kt/preprocess_mcmc_data.ipynb`, where in the last code block we  report the median heuristic based bandwidth parameteters (along with the code to compute it).
 2. After all results have been generated, the notebook `examples/kt/plot_results.ipynb` can be used to reproduce the figures of Kernel Thinning.
 
-
-
 #### [Generalized Kernel Thinning](https://arxiv.org/pdf/2110.01593.pdf) 
 ```
 @inproceedings{dwivedi2022generalized,
@@ -103,7 +101,16 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
     4. The notebook currently deploys these jobs on a slurm cluster, but setting deploy_slurm = False in `examples/compress/script_to_deploy_jobs.ipynb` will submit the jobs as independent python calls on terminal.
 2. After all results have been generated, the notebook `examples/compress/plot_compress_results.ipynb` can be used to reproduce the figures of Distribution Compression in Near-linear Time.
 
-
+#### [Compress Then Test: Powerful Kernel Testing in Near-linear Time](https://arxiv.org/pdf/.pdf)
+```
+@article{domingoenrich2023compress,
+  title={Compress Then Test: Powerful Kernel Testing in Near-linear Time},
+  author={Carles Domingo-Enrich and Raaz Dwivedi and Lester Mackey},
+  journal={arXiv preprint},
+  year={2023}
+}
+```
+See `examples/mmd_test/README.md`.
 
 ## Contributing
 

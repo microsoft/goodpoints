@@ -35,7 +35,7 @@ coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=123, store_K=
         if True print that info
     """
 ```
-For example uses, please refer to the notebook `examples/kt/run_kt_experiment.ipynb`.
+For example uses, please refer to [examples/kt/run_kt_experiment.ipynb](examples/kt/run_kt_experiment.ipynb).
 
 The primary Compress++ function is `compresspp` in the `compress` module:
 ```python
@@ -52,7 +52,35 @@ coreset = compress.compresspp(X, halve, thin, g)
         g: Oversampling factor
     """
 ```
-For example uses, please refer to the code `examples/compress/construct_compresspp_coresets.py`.
+For example uses, please refer to [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py).
+
+The primary Compress Then Test function is `ctt` in the `ctt` module:
+```python
+from goodpoints import ctt
+test_results = ctt.ctt(X1, X2, g)
+    """Compress Then Test two-sample test with sample sequences X1 and X2
+    and auxiliary kernel k' = target kernel k.
+
+    Args:
+      X1: 2D array of size (n1,d)
+      X2: 2D array of size (n2,d)
+      g: compression level; integer >= 0
+      B: number of permutations (int)
+      s: total number of compression bins will be num_bins = min(2*s, n1+n2)
+      lam: positive kernel bandwidth 
+      kernel: kernel name; valid options include "gauss" for Gaussian kernel
+        exp(-||x-y||^2/lam^2)
+      null_seed: seed used to initialize random number generator for
+        randomness in simulating null
+      statistic_seed: seed used to initialize random number generator for
+        randomness in computing test statistic
+      alpha: test level
+      delta: KT-Compress failure probability
+      
+    Returns: TestResults object.
+    """
+```
+For example uses, please refer to [examples/mmd_test/test.py](examples/mmd_test/test.py).
 
 ## Examples
 
@@ -110,7 +138,7 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
   year={2023}
 }
 ```
-See `examples/mmd_test/README.md`.
+See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 
 ## Contributing
 

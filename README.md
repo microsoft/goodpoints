@@ -129,12 +129,12 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
     4. The notebook currently deploys these jobs on a slurm cluster, but setting deploy_slurm = False in `examples/compress/script_to_deploy_jobs.ipynb` will submit the jobs as independent python calls on terminal.
 2. After all results have been generated, the notebook `examples/compress/plot_compress_results.ipynb` can be used to reproduce the figures of Distribution Compression in Near-linear Time.
 
-#### [Compress Then Test: Powerful Kernel Testing in Near-linear Time](https://arxiv.org/pdf/.pdf)
+#### [Compress Then Test: Powerful Kernel Testing in Near-linear Time](https://arxiv.org/pdf/2301.05974.pdf)
 ```
 @article{domingoenrich2023compress,
   title={Compress Then Test: Powerful Kernel Testing in Near-linear Time},
   author={Carles Domingo-Enrich and Raaz Dwivedi and Lester Mackey},
-  journal={arXiv preprint},
+  journal={arXiv preprint arXiv:2301.05974},
   year={2023}
 }
 ```

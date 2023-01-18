@@ -3,6 +3,7 @@
 Functionality supporting the CTT, ACTT, and LR-CTT-RFF tests of
   Carles Domingo-Enrich, Raaz Dwivedi, and Lester Mackey.
   Compress Then Test: Powerful Kernel Testing in Near-linear Time.
+  https://arxiv.org/pdf/2301.05974.pdf
   
 and the RFF test (with permutation-based null) of
   Ji Zhao and Deyu Meng.

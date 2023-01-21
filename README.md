@@ -6,6 +6,7 @@ GoodPoints is a collection of tools for compressing a distribution more effectiv
 
 - Given an initial summary of n input points, **kernel thinning** returns s << n output points with comparable integration error across a reproducing kernel Hilbert space
 - **Compress++** reduces the runtime of generic thinning algorithms with minimal loss in accuracy
+- **Compress Then Test** accelerates kernel two-sample testing using high-fidelity compression
 
 ## Installation
 To install the `goodpoints` package, use the following pip command:

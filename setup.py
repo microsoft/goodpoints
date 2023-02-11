@@ -11,28 +11,28 @@ lib_path_npymath = join(numpy.get_include(), '..', 'lib')
 # Cython modules to be compiled
 extensions = [
     Extension(
-        "goodpoints.ktc", ["goodpoints/ktc.pyx"],
+        "goodpoints.ktc", [join("goodpoints","ktc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
         library_dirs=[lib_path_npyrandom,lib_path_npymath],
         libraries=['npyrandom','npymath','m']
     ),
     Extension(
-        "goodpoints.compressc", ["goodpoints/compressc.pyx"],
+        "goodpoints.compressc", [join("goodpoints","compressc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
         library_dirs=[lib_path_npyrandom,lib_path_npymath],
         libraries=['npyrandom','npymath','m'],
     ), 
     Extension(
-        "goodpoints.cttc", ["goodpoints/cttc.pyx"],
+        "goodpoints.cttc", [join("goodpoints","cttc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
         library_dirs=[lib_path_npyrandom,lib_path_npymath],
         libraries=['npyrandom','npymath','m'],
     ), 
     Extension(
-        "goodpoints.gaussianc", ["goodpoints/gaussianc.pyx"],
+        "goodpoints.gaussianc", [join("goodpoints","gaussianc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
         library_dirs=[lib_path_npyrandom,lib_path_npymath],

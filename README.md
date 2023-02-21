@@ -141,7 +141,6 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
   month={25--27 Apr},
   publisher={PMLR}
 }
-
 ```
 See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 

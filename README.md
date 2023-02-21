@@ -132,12 +132,16 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 
 #### [Compress Then Test: Powerful Kernel Testing in Near-linear Time](https://arxiv.org/pdf/2301.05974.pdf)
 ```
-@article{domingoenrich2023compress,
+@inproceedings{domingoenrich2023compress,
   title={Compress Then Test: Powerful Kernel Testing in Near-linear Time},
   author={Carles Domingo-Enrich and Raaz Dwivedi and Lester Mackey},
-  journal={arXiv preprint arXiv:2301.05974},
-  year={2023}
+  booktitle={Proceedings of The 26th International Conference on Artificial Intelligence and Statistics},
+  year={2023},
+  series={Proceedings of Machine Learning Research},
+  month={25--27 Apr},
+  publisher={PMLR}
 }
+
 ```
 See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 

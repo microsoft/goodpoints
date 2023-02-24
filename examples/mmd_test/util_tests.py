@@ -101,7 +101,7 @@ def get_attributes_tests(args):
         args.estimator_labels['ctt'].append('g='+str(g))
         
     #Build list of estimators for RFF tests
-    args.n_features_list = [1,4,16,64,128,256,512] #[10,20,40,60,80,100,150,200,300,500]
+    args.n_features_list = [1,4,16,64,128,256] #[1,4,16,64,128,256,512] #[10,20,40,60,80,100,150,200,300,500]
     for nf in args.n_features_list:
         args.estimators['rff'].append('r'+str(nf))
         args.estimator_names['rff'].append('rff'+str(nf))

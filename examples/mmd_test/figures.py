@@ -350,8 +350,10 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
         mpl.rcParams['lines.markersize'] = label_size
         mpl.rcParams['grid.linewidth'] = 1.5
         mpl.rcParams['legend.fontsize'] = legend_size
-        pylab.rcParams['xtick.major.pad']=5
-        pylab.rcParams['ytick.major.pad']=5
+        matplotlib.rcParams['pdf.fonttype'] = 42
+        matplotlib.rcParams['ps.fonttype'] = 42
+        pylab.rcParams['xtick.major.pad'] = 5
+        pylab.rcParams['ytick.major.pad'] = 5
     
     #Title settings
     if args.name == 'gaussians': 
@@ -401,7 +403,7 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
         plot_line(rejection_rate['ctt'], rejection_rate_upper['ctt'], rejection_rate_lower['ctt'], times['ctt'], labels['ctt'], legend_text=legend_content, marker=mss[line_number], markersize=ms_size[line_number], color=colors[line_number], linestyle=lss[line_number], xytext=label_position, log_time_scale=args.log_time_scale, small_times=args.small_times)
         line_number += 1
         
-    if args.show_exact:
+    if args.show_exact or no_compute['ctt']:
         line_number = 1
         
     #Plot block WB line
@@ -624,7 +626,7 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
                     #plt.xticks([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], 
                     #           ['1', '2', '5', '10', '20', '50', '100', '200', '500', '1k', '2k', '5k'])
                 else:
-                    mpl.rcParams["legend.loc"] = 'upper right'
+                    mpl.rcParams["legend.loc"] = 'lower right'
                     #plt.xlim([0.001,5])
                     plt.xlim([0.0008,20])
                     plt.xticks([0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10], 
@@ -632,14 +634,17 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
             else:
                 if args.n == 262144:
                     mpl.rcParams["legend.loc"] = 'lower right'
-                    plt.xlim([0.3,23000])
+                    plt.xlim([0.27,23000])
+                    #plt.xlim([5,23000])
                     plt.xticks([1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000], 
                                ['1', '2', '5', '10', '20', '50', '100', '200', '500', '1k', '2k', '5k'])
+                    #plt.xticks([10, 20, 50, 100, 200, 500, 1000, 2000, 5000], 
+                    #           ['10', '20', '50', '100', '200', '500', '1k', '2k', '5k'])
                 else:
                     mpl.rcParams["legend.loc"] = 'lower right'
-                    plt.xlim([0.03,70])
-                    plt.xticks([0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50], 
-                               ['0.05', '0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50'])
+                    plt.xlim([0.017,70])
+                    plt.xticks([0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50], 
+                               ['0.02', '0.05', '0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50'])
         else:
             plt.xlim([-475,5900])
     elif args.name == 'EMNIST':
@@ -684,7 +689,7 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
                     else:
                         mpl.rcParams["legend.loc"] = 'lower right'
                     #plt.xlim([0.001,5])
-                    plt.xlim([0.0012,10])
+                    plt.xlim([0.0018,10])
                     plt.xticks([0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5], 
                                ['0.002', '0.005', '0.01', '0.02', '0.05', '0.1', '0.2', '0.5', '1', '2', '5'])
             else:
@@ -695,7 +700,7 @@ def fig_rejection(args, test_groups, joint_group_results_dict, aggregated=False)
                                ['1', '2', '5', '10', '20', '50', '100', '200', '500', '1k', '2k', '5k', '10k'])
                 else:
                     mpl.rcParams["legend.loc"] = 'lower right'
-                    plt.xlim([0.055,110])
+                    plt.xlim([0.04,110])
                     plt.xticks([0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100], 
                                ['0.1', '0.2', '0.5', '1', '2', '5', '10', '20', '50', '100'])
         else:
@@ -890,10 +895,11 @@ if __name__ == '__main__':
     
     for group in test_groups:
         if not no_compute[group]:
+            print(f'joint_fname[group]: {joint_fname[group]}')
             joint_group_results_dict[group] = pickle.load(open(joint_fname[group], 'rb'))
             
-    if not os.path.exists('figures'+'_'+args.name+'_final'):
-        os.makedirs('figures'+'_'+args.name+'_final')
+    if not os.path.exists('figures'+'_'+args.name+'_camera_ready'):
+        os.makedirs('figures'+'_'+args.name+'_camera_ready')
             
     plt.figure(figsize=(5.5,3))
     fig_rejection(args, test_groups, joint_group_results_dict, aggregated=args.aggregated)
@@ -921,14 +927,14 @@ if __name__ == '__main__':
     plt.tight_layout()  
     #End of new
             
-    print('Figure file:'+'figures'+'_'+args.name+'_final/'+'sm='+str(args.s_rff)+'_sp='+str(args.s_permute)+'_'+fig_file)
+    print('Figure file:'+'figures'+'_'+args.name+'_camera_ready/'+'sm='+str(args.s_rff)+'_sp='+str(args.s_permute)+'_'+fig_file)
     
     if not no_compute['ctt_rff']:
-        plt.savefig(f'figures'+'_'+args.name+'_final/'+'sm='+str(args.s_rff)+'_sp='+str(args.s_permute)+'_'+fig_file, bbox_inches='tight', pad_inches=0)
+        plt.savefig(f'figures'+'_'+args.name+'_camera_ready/'+'sm='+str(args.s_rff)+'_sp='+str(args.s_permute)+'_'+fig_file, bbox_inches='tight', pad_inches=0)
     elif not no_compute['ctt']:
-        plt.savefig(f'figures'+'_'+args.name+'_final/'+'sp='+str(args.s_permute)+'_'+fig_file, bbox_inches='tight', pad_inches=0)
+        plt.savefig(f'figures'+'_'+args.name+'_camera_ready/'+'sp='+str(args.s_permute)+'_'+fig_file, bbox_inches='tight', pad_inches=0)
     else:
-        plt.savefig(f'figures'+'_'+args.name+'_final/'+fig_file, bbox_inches='tight', pad_inches=0)
+        plt.savefig(f'figures'+'_'+args.name+'_camera_ready/'+fig_file, bbox_inches='tight', pad_inches=0)
             
             
             

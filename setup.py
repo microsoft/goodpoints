@@ -43,5 +43,6 @@ extensions = [
 # Path to Cython declaration (PXD) files 
 include_path = ["goodpoints"]
 
-setup(ext_modules=cythonize(extensions, language_level = "3",
+setup(include_package_data=True,
+      ext_modules=cythonize(extensions, language_level = "3",
                             include_path=include_path))

@@ -1,0 +1,2 @@
+include goodpoints/*.pyx
+include goodpoints/*.pxd

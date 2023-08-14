@@ -25,6 +25,13 @@ extensions = [
         libraries=['npyrandom','npymath','m'],
     ), 
     Extension(
+        "goodpoints.compressc_sob", [join("goodpoints","compressc_sob.pyx")],
+        extra_compile_args=['-O3'],
+        language="c", include_dirs=[numpy.get_include()],
+        library_dirs=[lib_path_npyrandom,lib_path_npymath],
+        libraries=['npyrandom','npymath','m'],
+    ),
+    Extension(
         "goodpoints.cttc", [join("goodpoints","cttc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
@@ -33,6 +40,13 @@ extensions = [
     ), 
     Extension(
         "goodpoints.gaussianc", [join("goodpoints","gaussianc.pyx")],
+        extra_compile_args=['-O3'],
+        language="c", include_dirs=[numpy.get_include()],
+        library_dirs=[lib_path_npyrandom,lib_path_npymath],
+        libraries=['npyrandom','npymath','m'],
+    ),
+    Extension(
+        "goodpoints.sobolevc", [join("goodpoints","sobolevc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
         library_dirs=[lib_path_npyrandom,lib_path_npymath],

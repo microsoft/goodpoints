@@ -8,7 +8,7 @@ Implementations of the Compress, Compress++, and Symmetrize metaprocedures of
 
 import numpy as np
 import numpy.random as npr
-from goodpoints import compressc, compressc_sob
+from goodpoints import compressc
 
 def compress_gsn_kt(X, g = 0, num_bins=1, lam_sqd=np.ones(1), delta=0.5, seed=12345):
     """Returns coreset of size min(n, 2^{g+1} sqrt(n * num_bins)) as row indices into X.  
@@ -40,37 +40,6 @@ def compress_gsn_kt(X, g = 0, num_bins=1, lam_sqd=np.ones(1), delta=0.5, seed=12
         #print(f'lam_sqd scalar')
         lam_sqd = np.array([lam_sqd])
     compressc.compress(X, g, num_bins, lam_sqd, delta, seed, output_indices)
-    return output_indices
-
-def compress_sob_kt(X, g = 0, num_bins=1, s=np.ones(1), delta=0.5, seed=12345):
-    """Returns coreset of size min(n, 2^{g+1} sqrt(n * num_bins)) as row indices into X.  
-    Coreset is obtained by dividing the rows of X into num_bins consecutive bins,
-    running Compress(g) on each bin with a sobolev kernel with smoothness s (in 1, 2, 3) and
-    Halve = symmetrized kernel thinning, and concatenating the resulting per-bin 
-    coresets.
-
-    Note: Assumes n / num_bins is a power of 4.
-
-    Args:
-      X: Input sequence of sample points with shape (n, d)
-      g: Oversampling parameter, a nonnegative integer
-      num_bins: Number of bins, a positive integer <= n
-      s: array of sobolev kernel smoothness
-      delta: Failure probability parameter for kernel thinning
-      seed: Integer seed for initializing the random number generator used
-        by Halve
-    """
-    # Allocate array for storing coreset indices
-    n = X.shape[0]
-    coreset_size = min(n, int(np.sqrt(n * num_bins)*(2**g)))    
-    #print(f'n={n},num_bins={num_bins},g={g},coreset_size={coreset_size}')
-    output_indices = np.empty(coreset_size, dtype=np.int64)
-    
-    # Run Compress on each bin
-    if np.isscalar(s):
-        #print(f'lam_sqd scalar')
-        lam_sqd = np.array([s])
-    compressc_sob.compress(X, g, num_bins, s, delta, seed, output_indices)
     return output_indices
      
 def compress(X, halve, g = 0, indices = None):

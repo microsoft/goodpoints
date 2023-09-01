@@ -224,7 +224,7 @@ cdef void _compress(const double[:, :] X,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void compress(const double[:, :] X, 
-                    const long g, 
+                    const unsigned long g,
                     const long num_bins,
                     const double[:] lam_sqd,
                     const double delta,

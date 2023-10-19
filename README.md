@@ -17,21 +17,25 @@ pip install goodpoints
 The primary kernel thinning function is `thin` in the `kt` module:
 ```python
 from goodpoints import kt
-coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=123, store_K=False, 
-                  verbose=False)
+coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, 
+                  meanK=None, unique=False, verbose=False)
     """Returns kernel thinning coreset of size floor(n/2^m) as row indices into X
     
     Args:
       X: Input sequence of sample points with shape (n, d)
       m: Number of halving rounds
-      split_kernel: Kernel function used by KT-SPLIT (typically a square-root kernel, krt);
-        split_kernel(y,X) returns array of kernel evaluations between y and each row of X
+      split_kernel: Kernel function used by KT-SPLIT (often a square-root kernel, krt,
+        or a target kernel, k); split_kernel(y,X) returns array of kernel evaluations
+        between y and each row of X
       swap_kernel: Kernel function used by KT-SWAP (typically the target kernel, k);
         swap_kernel(y,X) returns array of kernel evaluations between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None, no seed will be set
       store_K: If False, runs O(nd) space version which does not store kernel
         matrix; if True, stores n x n kernel matrix
+      meanK: None or array of length n with meanK[ii] = mean of swap_kernel(X[ii], X);
+        used to speed up computation when not None
+      unique: If True, constrains the output to never contain the same row index more than once
       verbose: If False, do not print intermediate time taken in thinning rounds, 
         if True print that info
     """
@@ -48,12 +52,28 @@ coreset = compress.compresspp(X, halve, thin, g)
         X: Input sequence of sample points with shape (n, d)
         halve: Function that takes in an (n', d) numpy array Y and returns 
           floor(n'/2) distinct row indices into Y, identifying a halved coreset
-        thin: Function that takes in an (n', d) numpy array Y and returns
-          2^g sqrt(n') row indices into Y, identifying a thinned coreset
+        thin: Function that takes in an (2^g sqrt(n'), d) numpy array Y and returns
+          sqrt(n') row indices into Y, identifying a thinned coreset
         g: Oversampling factor
     """
 ```
 For example uses, please refer to [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py).
+
+A more efficient convenience function is available when one wants to run Compress++ to speed up kernel thinning:
+```python
+from goodpoints import compress
+coreset = compress.compresspp_kt(X, kernel_type, g=g, mean0=mean0)
+    """Returns KT-Compress++(g) coreset of size sqrt(n) as row indices into X
+
+    Args: 
+      X: Input sequence of sample points with shape (n, d)
+      kernel_type: Byte string name of kernel to use
+      g: Oversampling parameter, a nonnegative integer
+      mean0: If False, final KT call minimizes MMD to empirical measure over 
+        the input points. Otherwise minimizes MMD to the 0 measure; this
+        is useful when the kernel has expectation zero under a target measure.
+    """
+```
 
 The primary Compress Then Test function is `ctt` in the `ctt` module:
 ```python

@@ -30,7 +30,7 @@ np.import_array()
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double signed_matrix_sum(const double[:,:] K,
-                               const long [:] signs) nogil:
+                               const long [:] signs) noexcept nogil:
     """
     Returns sum_{i,j} K[i,j] signs[i] signs[j]
     
@@ -61,7 +61,7 @@ cpdef double signed_matrix_sum(const double[:,:] K,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void signed_tensor_sum(const double[:,:,:] K,
                              const long [:] signs,
-                             double[:] K_sum) nogil:
+                             double[:] K_sum) noexcept nogil:
     """
     Computes sum_{i,j} K[i,j,:] signs[i] signs[j] and stores in K_sum
     
@@ -97,7 +97,7 @@ cpdef void signed_tensor_sum(const double[:,:,:] K,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void linear_kernel_same(const double[:,:] X1,
-                              double[:,:] K) nogil:
+                              double[:,:] K) noexcept nogil:
     """
     Stores the linear kernel matrix X1 * X1^T in K
     
@@ -131,7 +131,7 @@ cpdef void rff(const double[:,:] X1,
                const double[:,:] X2,
                const double[:,:] W,
                const double[:] b,
-               double[:,:] features) nogil:
+               double[:,:] features) noexcept nogil:
     """
     Computes the features cos(W x + b)/sqrt(n_features) for each row x 
     of [X1; X2], averages those feature vectors across consecutive bins of 
@@ -195,7 +195,7 @@ cpdef void rff(const double[:,:] X1,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double signed_vector_sqd_norm(const double[:,:] X,
-                                    const long [:] signs) nogil:
+                                    const long [:] signs) noexcept nogil:
     """
     Returns sum_j (sum_{i} X[i,j] signs[i])^2
     

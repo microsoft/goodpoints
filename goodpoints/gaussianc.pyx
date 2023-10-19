@@ -27,7 +27,7 @@ np.import_array()
 @cython.cdivision(True) # Disable C-division checks for this function
 cdef double gaussian_kernel_two_points(const double[:] X1,
                                        const double[:] X2,
-                                       const double[:] lam_sqd) nogil:
+                                       const double[:] lam_sqd) noexcept nogil:
     """
     Computes a sum of Gaussian kernels sum_j exp(-||X1-X2||_2^2/lam_sqd[j]) 
     between two points X1 and X2
@@ -59,12 +59,29 @@ cdef double gaussian_kernel_two_points(const double[:] X1,
 @cython.wraparound(False)  # turn off negative index wrapping for this function
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
+cdef double gaussian_kernel_one_point(const double[:] X1,
+                                      const double[:] lam_sqd) noexcept nogil:
+    """
+    Computes a sum of Gaussian kernels sum_j exp(-||X1-X1||_2^2/lam_sqd[j]) 
+    between X1 and itself
+    
+    Args:
+      X1: 1D array representing a data point
+      lam_sqd: 1D array of squared kernel bandwidths
+    """
+    # sum_j exp(-||X1-X1||_2^2/lam_sqd[j]) = sum_j 1
+    return(lam_sqd.shape[0])
+
+@cython.boundscheck(False) # turn off bounds-checking for this function
+@cython.wraparound(False)  # turn off negative index wrapping for this function
+@cython.initializedcheck(False) # turn off memoryview initialization checks for this function
+@cython.cdivision(True) # Disable C-division checks for this function
 cpdef void gaussian_kernel(const double[:,:] X1,
                            const double[:,:] X2,
                            const double lam_sqd,
-                           double[:,:] K) nogil:
+                           double[:,:] K) noexcept nogil:
     """
-    Computes the Gaussian kernel matrix between each rows of X1 and each rows of X2
+    Computes the Gaussian kernel matrix between each row of X1 and each row of X2
     and stores in K
     
     Args:
@@ -94,7 +111,7 @@ cpdef void gaussian_kernel(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void gaussian_kernel_same(const double[:,:] X1,
                                 const double lam_sqd,
-                                double[:,:] K) nogil:
+                                double[:,:] K) noexcept nogil:
     """
     Computes the Gaussian kernel matrix between each pair of rows in X1
     and stores in K
@@ -127,7 +144,7 @@ cpdef void gaussian_kernel_same(const double[:,:] X1,
 cpdef void gaussian_kernel_by_row(const double[:] X1,
                                   const double[:,:] X2,
                                   const double lam_sqd,
-                                  double[:] K) nogil:
+                                  double[:] K) noexcept nogil:
     """
     Computes the Gaussian kernel matrix between X1 and each row of X2
     and stores in K
@@ -156,7 +173,7 @@ cpdef void gaussian_kernel_by_row(const double[:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double sum_gaussian_kernel(const double[:,:] X1,
                                  const double[:,:] X2,
-                                 const double lam_sqd) nogil:
+                                 const double lam_sqd) noexcept nogil:
     """
     Returns the sum of Gaussian kernel evaluations between each row of X1 
     and each row of X2
@@ -188,7 +205,7 @@ cpdef double sum_gaussian_kernel(const double[:,:] X1,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double sum_gaussian_kernel_same(const double[:,:] X1,
-                                      const double lam_sqd) nogil:
+                                      const double lam_sqd) noexcept nogil:
     """
     Returns the sum of Gaussian kernel evaluations between each pair of 
     rows of X1
@@ -222,7 +239,7 @@ cpdef double sum_gaussian_kernel_same(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double sum_gaussian_kernel_linear_eval(const double[:,:] X1,
                                              const double[:,:] X2,
-                                             const double lam_sqd) nogil:
+                                             const double lam_sqd) noexcept nogil:
     """
     Computes the sum of Gaussian kernel evaluations between the 
     i-th row of X1 and the i-th row of X2
@@ -254,7 +271,7 @@ cpdef double sum_gaussian_kernel_linear_eval(const double[:,:] X1,
 cpdef void sum_gaussian_kernel_by_bin(const double[:,:] X1,
                                       const double[:,:] X2,
                                       const double lam_sqd,
-                                      double[:,:] K_sum) nogil:
+                                      double[:,:] K_sum) noexcept nogil:
     """
     Partitions the rows of X1 and the rows of X2 into bins of size 
     bin_size = (n1+n2) // num_bins, computes sum_gaussian_kernel for 
@@ -337,7 +354,7 @@ cpdef void sum_gaussian_kernel_by_bin(const double[:,:] X1,
 cpdef void sum_gaussian_kernel_by_bin_aggregated(const double[:,:] X1,
                                                  const double[:,:] X2,
                                                  const double[:] lam_sqd,
-                                                 double[:,:,:] K_sum) nogil:
+                                                 double[:,:,:] K_sum) noexcept nogil:
     """
     Partitions the rows of X1 and the rows of X2 into bins of size 
     bin_size = (n1+n2) // num_bins, computes sum_gaussian_kernel for 
@@ -422,7 +439,7 @@ cpdef void sum_gaussian_kernel_by_bin_aggregated(const double[:,:] X1,
 cpdef void sum_gaussian_kernel_aggregated(const double[:,:] X1,
                                           const double[:,:] X2,
                                           const double[:] lam_sqd,
-                                          double[:] results) nogil:
+                                          double[:] results) noexcept nogil:
     """
     Computes the sum of Gaussian kernel evaluations between all rows of X1 and all rows of X2, 
     for all the squared bandwidths in lam_sqd and stores in results.
@@ -456,7 +473,7 @@ cpdef void sum_gaussian_kernel_aggregated(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void sum_gaussian_kernel_same_aggregated(const double[:,:] X1,
                                                const double[:] lam_sqd,
-                                               double[:] results) nogil:
+                                               double[:] results) noexcept nogil:
     """
     Computes the sum of Gaussian kernel evaluations between all rows of X1 and all rows of X1,
     for all the squared bandwidths in lam_sqd and stores in results.
@@ -492,7 +509,7 @@ cpdef void sum_gaussian_kernel_same_aggregated(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double biased_sqMMD_gaussian(const double[:,:] X1,
                                    const double[:,:] X2,
-                                   const double lam_sqd) nogil:
+                                   const double lam_sqd) noexcept nogil:
     """
     Computes the biased quadratic squared MMD estimator for the Gaussian kernel from samples X1 and X2
     
@@ -519,7 +536,7 @@ cpdef double biased_sqMMD_gaussian(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double unbiased_sqMMD_gaussian(const double[:,:] X1,
                                      const double[:,:] X2,
-                                     const double lam_sqd) nogil:
+                                     const double lam_sqd) noexcept nogil:
     """
     Computes the unbiased quadratic squared MMD estimator for the Gaussian kernel from samples X1 and X2
     
@@ -550,7 +567,7 @@ cpdef void block_sqMMD_gaussian(const double[:,:] X1,
                                 const double[:,:] X2,
                                 const double lam_sqd,
                                 const long block_size,
-                                double[:] results) nogil:
+                                double[:] results) noexcept nogil:
     """Computes the block quadratic squared MMD estimator for the Gaussian kernel from samples X1 and X2
     
     Args:
@@ -606,7 +623,7 @@ cpdef void block_sqMMD_gaussian_reordered(const double[:,:] X1,
                                           const long block_size,
                                           const long seed,
                                           long[:] epsilon,
-                                          double[:] results) nogil:
+                                          double[:] results) noexcept nogil:
     """Computes the block squared MMD estimator for the Gaussian kernel from samples X1 and X2, reordering before constructing blocks
     
     Args:
@@ -688,7 +705,7 @@ cpdef double block_sqMMD_gaussian_Rademacher(const double[:,:] X1,
                                              const long block_size,
                                              const long long[:,:] epsilon,
                                              double[:] split_values,
-                                             double[:] sqMMD_values) nogil:
+                                             double[:] sqMMD_values) noexcept nogil:
     """Computes the block squared MMD estimator for the Gaussian kernel from samples X1 and X2, 
     for different Rademacher vectors
     
@@ -755,7 +772,7 @@ cpdef double h_gaussian(const double[:] x1,
                         const double[:] x2,
                         const double[:] y1,
                         const double[:] y2,
-                        const double lam_sqd) nogil:
+                        const double lam_sqd) noexcept nogil:
     """
     Computes the kernel function h((x1,y1),(x2,y2)) = k(x1,x1) + k(y2,y2) - k(x1,y2) - k(x2,y1), where k is the Gaussian kernel
     
@@ -788,7 +805,7 @@ cpdef void h_gaussian_aggregated(const double[:] x1,
                                  const double[:] y1,
                                  const double[:] y2,
                                  const double[:] lam_sqd,
-                                 double[:] h_values) nogil:
+                                 double[:] h_values) noexcept nogil:
     """
     Computes the kernel function h((x1,y1),(x2,y2)) = k(x1,x1) + k(y2,y2) - k(x1,y2) - k(x2,y1), where k is the Gaussian kernel,
     for all the squared bandwidths in lam_sqd
@@ -827,7 +844,7 @@ cpdef void incomplete_sqMMD_gaussian(const double[:,:] X1,
                                      const long seed,
                                      double[:] sqMMD_list,
                                      double[:] sqMMD_variances,
-                                     double[:] sqMMD_times) nogil:
+                                     double[:] sqMMD_times) noexcept nogil:
     """
     Computes the incomplete squared MMD estimator
     
@@ -893,7 +910,7 @@ cpdef void incomplete_sqMMD_gaussian_Rademacher_subdiagonals(const double[:,:] X
                                                              const long[:,:] epsilon,
                                                              double[:,:] sqMMD_matrix,
                                                              double[:] sqMMD_vector,
-                                                             double[:] sqMMD_times) nogil:
+                                                             double[:] sqMMD_times) noexcept nogil:
     """
     Computes the incomplete squared MMD estimator for the Gaussian kernel from samples X1 and X2, 
     for different Rademacher vectors
@@ -983,7 +1000,7 @@ cpdef void incomplete_sqMMD_gaussian_Rademacher_aggregated(const double[:,:] X1,
                                                            double[:,:,:] sqMMD_matrix,
                                                            double[:,:] sqMMD_vector,
                                                            double[:] sqMMD_times,
-                                                           double[:] h_values) nogil:
+                                                           double[:] h_values) noexcept nogil:
     """
     Computes the incomplete squared MMD estimator for the Gaussian kernel from samples X1 and X2, 
     for different Rademacher vectors and different bandwidths
@@ -1070,7 +1087,7 @@ cpdef void incomplete_sqMMD_gaussian_Rademacher_aggregated(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double expectation_h_1(const double[:,:] X1,
                              const double[:,:] X2,
-                             const double lam_sqd) nogil:
+                             const double lam_sqd) noexcept nogil:
     """
     Computes E_z[(E_{z'}h(z,z'))^2]
     
@@ -1096,7 +1113,7 @@ cpdef double expectation_h_1(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double expectation_h_2(const double[:,:] X1,
                              const double[:,:] X2,
-                             const double lam_sqd) nogil:
+                             const double lam_sqd) noexcept nogil:
     """
     Computes E_{z,z'}[(h(z,z'))^2]
     
@@ -1119,7 +1136,7 @@ cpdef double expectation_h_2(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double expectation_h_3(const double[:,:] X1,
                              const double[:,:] X2,
-                             const double lam_sqd) nogil:
+                             const double lam_sqd) noexcept nogil:
     """
     Compute (E_{z,z'}[h(z,z')])^2
     
@@ -1142,7 +1159,7 @@ cpdef double expectation_h_3(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double sigma_1_sqd(const double[:,:] X1,
                          const double[:,:] X2,
-                         const double lam_sqd) nogil:
+                         const double lam_sqd) noexcept nogil:
     """
     Compute sigma_1^2 = E_z[(E_{z'}h(z,z'))^2] - (E_{z,z'}[h(z,z')])^2
     
@@ -1172,7 +1189,7 @@ cpdef double sigma_1_sqd(const double[:,:] X1,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef double sigma_2_sqd(const double[:,:] X1,
                          const double[:,:] X2,
-                         const double lam_sqd) nogil:
+                         const double lam_sqd) noexcept nogil:
     """
     Compute sigma_2^2 = E_{z,z'}[h(z,z')^2] - E_z[(E_{z'}h(z,z'))^2]
     

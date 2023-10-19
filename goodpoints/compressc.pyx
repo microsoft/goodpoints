@@ -5,7 +5,7 @@ Cython implementation of the Compress algorithm of
   Distribution Compression in Near-linear Time.
   https://arxiv.org/pdf/2111.07941.pdf
   
-with Gaussian kernel and symmetrized target kernel halving.
+with symmetrized target kernel halving.
 """
 
 import numpy as np
@@ -19,34 +19,86 @@ from libc.math cimport exp, log2
 # numpy PyArray_* API. From Cython 3, accessing attributes like
 # ".shape" on a typed Numpy array use this API. 
 np.import_array()
+from libc.stdio cimport printf
 from libc.stdlib cimport malloc, free
+from libc.string cimport strcmp
 from cpython.pycapsule cimport PyCapsule_GetPointer
 from numpy.random import PCG64, Generator
 from numpy.random cimport bitgen_t
 from goodpoints.ktc cimport thin_K
-from goodpoints.gaussianc cimport gaussian_kernel_two_points
-
+from goodpoints.sobolevc cimport (sobolev_kernel_two_points,
+                                  sobolev_kernel_one_point)
+from goodpoints.gaussianc cimport (gaussian_kernel_two_points, 
+                                  gaussian_kernel_one_point)
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Compress Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 '''
-     
+
+# Define function type for two point kernel call with auxiliary
+# parameter array s, e.g., (x,y,s) -> sum_l k_{s[l]}(x,y)
+ctypedef double (*kernel)(const double[:], const double[:], 
+                          const double[:]) noexcept nogil
+
+# Define function type for one point kernel diagonal call with 
+# auxiliary parameter array s, e.g., (x,s) -> sum_l k_{s[l]}(x,x)
+ctypedef double (*kernel_diag)(const double[:], const double[:]) noexcept nogil
+
 @cython.boundscheck(False) # turn off bounds-checking for this function
 @cython.wraparound(False)  # turn off negative index wrapping for this function
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
-cdef void compute_K(const double[:, :] X, 
-                    const long[:] input_indices, 
-                    const double[:] lam_sqd,
-                    double[:, :] K) nogil:
+cpdef void compute_K(const double[:, :] X, 
+                     const long[:] input_indices, 
+                     const char* kernel_type, 
+                     const double[:] k_params,
+                     double[:, :] K) noexcept nogil:
     """
-    Computes sum-of-Gaussian kernel matrix for points X[input_indices]
-    and stores in K
+    Computes kernel matrix for points X[input_indices] and stores in K
     
     Args:
       X: array of size (N, d)
       input_indices: array of size n <= N
-      lam_sqd: array of squared kernel bandwidths for sum of Gaussian
-        kernels (see gaussian_kernel_two_points)
+      kernel_type: Byte string name of kernel to use:
+        b"gaussian" for (sum of) Gaussian kernels with squared bandwidth params,
+        b"sobolev" for (sum of) Sobolev kernels with smoothness params
+      k_params: array of kernel parameters (e.g., squared bandwidths for sum of
+        Gaussian kernels or smoothness parameters for sum of Sobolev)
+      K: array of size (n, n) for storing the kernel matrix
+    """
+    # Select kernel functions to match kernel type
+    cdef kernel k
+    cdef kernel_diag kdiag
+    # strcmp returns 0 when two const char* strings are equal
+    # b prefix designates byte string
+    if strcmp(kernel_type, b"gaussian") == 0:
+        k = gaussian_kernel_two_points 
+        kdiag = gaussian_kernel_one_point
+    elif strcmp(kernel_type, b"sobolev") == 0:
+        k = sobolev_kernel_two_points 
+        kdiag = sobolev_kernel_one_point
+    # Populate kernel matrix using these kernel functions
+    _compute_K(X, input_indices, k, kdiag, k_params, K)
+
+@cython.boundscheck(False) # turn off bounds-checking for this function
+@cython.wraparound(False)  # turn off negative index wrapping for this function
+@cython.initializedcheck(False) # turn off memoryview initialization checks for this function
+@cython.cdivision(True) # Disable C-division checks for this function
+cdef void _compute_K(const double[:, :] X, 
+                     const long[:] input_indices, 
+                     const kernel k,
+                     const kernel_diag kdiag, 
+                     const double[:] k_params,
+                     double[:, :] K) noexcept nogil:
+    """
+    Computes kernel matrix for points X[input_indices] and stores in K
+    
+    Args:
+      X: array of size (N, d)
+      input_indices: array of size n <= N
+      k: kernel function k(x,y,s) with auxiliary parameter array s
+      kdiag: kernel diagonal function; kdiag(x, s) = k(x, x, s)
+      k_params: array of kernel parameters (e.g., squared bandwidths for sum of
+        Gaussian kernels or smoothness parameters for sum of Sobolev)
       K: array of size (n, n) for storing the kernel matrix
     """
     
@@ -58,12 +110,11 @@ cdef void compute_K(const double[:, :] X,
     for i in range(n):
         X_input_i = X[input_indices[i]]
         K_i = K[i]
-        # gaussian_kernel_two_points(X_input_i, X_input_i, lam_sqd)
-        K_i[i] = 1
+        K_i[i] = kdiag(X_input_i, k_params) 
         j = 0 
         while j < i: 
             X_input_j = X[input_indices[j]]
-            k_val = gaussian_kernel_two_points(X_input_i, X_input_j, lam_sqd)
+            k_val = k(X_input_i, X_input_j, k_params) 
             K_i[j] = k_val
             K[j, i] = k_val
             j += 1
@@ -75,16 +126,18 @@ cdef void compute_K(const double[:, :] X,
 cdef void halve(const double[:,:] X,
                 const long[:] input_indices,
                 bitgen_t* rng,
-                const double[:] lam_sqd,
+                const kernel k,
+                const kernel_diag kdiag, 
+                const double[:] k_params,
                 const double halve_prob,
                 double[:,:] K,
                 double[:] aux_double_mem,
                 long[:,:] aux_long_mem,
-                long[:] output_indices) nogil:
+                long[:] output_indices) noexcept nogil:
     """
     Return halved coreset for X[input_indices] with the halved indices into X stored 
     in output_indices. Halving is performed by symmetrized kt.thin with parameter
-    delta and a sum of gaussian kernels with squared bandwidths in lam_sqd
+    delta and kernel k.
     
     Requirement: the length n of input_indices must be even
     
@@ -92,8 +145,10 @@ cdef void halve(const double[:,:] X,
       X: array of size (N, d)
       input_indices: array of size n <= N
       rng: pointer to random number generator
-      lam_sqd: array of squared kernel bandwidths for sum of Gaussian
-        kernels (see gaussian_kernel_two_points)
+      k: kernel function k(x,y,s) with auxiliary parameter array s
+      kdiag: kernel diagonal function; kdiag(x, s) = k(x, x, s)
+      k_params: array of kernel parameters (e.g., squared bandwidths for sum of
+        Gaussian kernels or smoothness parameters for sum of Sobolev)
       halve_prob: Runs thin_K with failure probability parameter 
         delta = halve_prob * n^2
       K: shape (2*n_out, 2*n_out) array for storing a kernel matrix; will be
@@ -105,7 +160,7 @@ cdef void halve(const double[:,:] X,
     """
     
     # Populate kernel matrix
-    compute_K(X, input_indices, lam_sqd, K)
+    _compute_K(X, input_indices, k, kdiag, k_params, K)
     
     # Failure probability parameter accepted by thin_K
     cdef double delta = halve_prob * (input_indices.shape[0] ** 2)
@@ -114,7 +169,8 @@ cdef void halve(const double[:,:] X,
     # Note: at this stage, output_indices will contain 
     # indices into the input_indices array, and not into X
     cdef bint unique = True
-    thin_K(K, rng, delta, unique, 
+    cdef bint mean0 = False
+    thin_K(K, rng, delta, unique, mean0, 
            aux_double_mem, aux_long_mem, output_indices)
 
     # Return the selected coreset as indices into X
@@ -130,14 +186,16 @@ cdef void halve(const double[:,:] X,
 cdef void _compress(const double[:, :] X, 
                     const long[:] input_indices,
                     const long base_size,
-                    const double[:] lam_sqd,
+                    const kernel k,
+                    const kernel_diag kdiag, 
+                    const double[:] k_params,
                     const double halve_prob,
                     bitgen_t* halve_rng,
                     double[:,:] K,
                     double[:] aux_double_mem,
                     long[:,:] aux_long_mem,
                     long[:] intermediate_indices, 
-                    long[:] output_indices) nogil: 
+                    long[:] output_indices) noexcept nogil: 
     """Forms Compress coreset for X[input_indices] of length 
     n_out = sqrt(base_size * len(input_indices))/2 representing
     row indices into X.  Stores coreset in output_indices
@@ -151,8 +209,10 @@ cdef void _compress(const double[:, :] X,
         Halve on the input points without further recursive calls to Compress;
         corresponds to 4^{g+1} for integer g >= 0 the oversampling parameter 
         of Compress
-      lam_sqd: array of squared kernel bandwidths for sum of Gaussian
-        kernels (see gaussian_kernel_two_points)
+      k: kernel function k(x,y,s) with auxiliary parameter array s
+      kdiag: kernel diagonal function; kdiag(x, s) = k(x, x, s)
+      k_params: array of kernel parameters (e.g., squared bandwidths for sum of
+        Gaussian kernels or smoothness parameters for sum of Sobolev)
       halve_prob: Halving probability parameter accepted by halve
       halve_seed: Pointer to an RNG for halving algorithm
       K: array for storing a kernel matrix; will be modified in place;
@@ -172,7 +232,7 @@ cdef void _compress(const double[:, :] X,
     # If input size equals base_size, call Halve directly on input indices
     if n == base_size:
         # Call Halve directly on the input_indices
-        halve(X, input_indices, halve_rng, lam_sqd, halve_prob, 
+        halve(X, input_indices, halve_rng, k, kdiag, k_params, halve_prob, 
               K, aux_double_mem, aux_long_mem, output_indices)
         return
 
@@ -204,7 +264,7 @@ cdef void _compress(const double[:, :] X,
         _compress(
             X, 
             input_indices[child_in_start:child_in_start+child_in_len],
-            base_size, lam_sqd, halve_prob, 
+            base_size, k, kdiag, k_params, halve_prob, 
             halve_rng,
             child_K,
             child_aux_double_mem,
@@ -216,7 +276,7 @@ cdef void _compress(const double[:, :] X,
         child_out_start += child_out_len
     
     # Run halving on child_output_indices
-    halve(X, child_output_indices, halve_rng, lam_sqd, halve_prob, 
+    halve(X, child_output_indices, halve_rng, k, kdiag, k_params, halve_prob, 
           K, aux_double_mem, aux_long_mem, output_indices)
 
 @cython.boundscheck(False) # turn off bounds-checking for this function
@@ -224,12 +284,13 @@ cdef void _compress(const double[:, :] X,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void compress(const double[:, :] X, 
-                    const unsigned long g,
+                    const unsigned long g, 
                     const long num_bins,
-                    const double[:] lam_sqd,
+                    const char* kernel_type, 
+                    const double[:] k_params,
                     const double delta,
                     const long halve_seed,
-                    long[:] output_indices) nogil:
+                    long[:] output_indices) noexcept nogil:
     """Partitions rows of X consecutively into num_bins bins,
     forms Compress(g) coreset for each bin as row indices into X, and 
     stores concatenated coresets in output_indices.
@@ -240,15 +301,18 @@ cpdef void compress(const double[:, :] X,
       X: Input sequence of sample points with shape (n, d)
       g: Oversampling parameter, a nonnegative integer
       num_bins: Number of bins
-      lam_sqd: Array of squared kernel bandwidths for sum of Gaussian
-        kernels (see gaussian_kernel_two_points)
+      kernel_type: Byte string name of kernel to use:
+        b"gaussian" for (sum of) Gaussian kernels with squared bandwidth params,
+        b"sobolev" for (sum of) Sobolev kernels with smoothness params
+      k_params: Array of kernel parameters
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
-      halve_seed: Random seed to set the RNG for halve
+      halve_seed: Nonnegative integer seed to initialize a random number 
+        generator or a negative integer indicating no seed should be set
       output_indices: Array for storing the output coreset indexing the rows 
         of X; will be modified in place; has length min(n_out, n)
         for n_out = 2^g *sqrt(n num_bins)  
     """ 
-
+    
     # Number of sample points
     cdef long n = X.shape[0]
     # Number of input points per bin
@@ -295,13 +359,29 @@ cpdef void compress(const double[:, :] X,
 
         # Store the generator in a variable before extracting capsule
         # to avoid the issue of generator being freed prematurely
-        halve_generator = Generator(PCG64(halve_seed)) # PyObject
+        if halve_seed >= 0:
+            halve_generator = Generator(PCG64(halve_seed)) # PyObject
+        else:
+            # Do not set seed if halve_seed is negative
+            halve_generator = Generator(PCG64()) # PyObject
         halve_capsule = halve_generator.bit_generator.capsule # PyObject
         halve_rng = <bitgen_t *> PyCapsule_GetPointer(halve_capsule, capsule_name)
     
     # Compute base halving probability used by kernel thinning
     halve_prob = delta / base_size / (log2(bin_size)/2 - g) / n
 
+    # Select kernel functions to match kernel type
+    cdef kernel k
+    cdef kernel_diag kdiag
+    # strcmp returns 0 when two const char* strings are equal
+    # b prefix designates byte string
+    if strcmp(kernel_type, b"gaussian") == 0:
+        k = gaussian_kernel_two_points 
+        kdiag = gaussian_kernel_one_point
+    elif strcmp(kernel_type, b"sobolev") == 0:
+        k = sobolev_kernel_two_points 
+        kdiag = sobolev_kernel_one_point
+    
     # Compress each bin
     # Keep track of current bin's starting index into output indices
     # and into input rows of X
@@ -315,7 +395,7 @@ cpdef void compress(const double[:, :] X,
          
         # Run compress algorithm to populate output indices
         _compress(X, input_indices, base_size, 
-                  lam_sqd, halve_prob, 
+                  k, kdiag, k_params, halve_prob, 
                   halve_rng, 
                   K, aux_double_mem, aux_long_mem,
                   intermediate_indices,
@@ -331,4 +411,3 @@ cpdef void compress(const double[:, :] X,
     free(aux_long_ptr)
     free(intermediate_indices_ptr)
     free(input_indices_ptr)
-    

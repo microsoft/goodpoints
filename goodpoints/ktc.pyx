@@ -31,6 +31,8 @@ np.import_array()
 from numpy.random cimport bitgen_t
 from numpy.random.c_distributions cimport (random_standard_uniform,
       random_standard_uniform_fill)
+from libc.stdlib cimport malloc, free
+
 
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Kernel Thinning Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -44,13 +46,13 @@ cdef void thin_K(const double[:, :] K,
                   bitgen_t* rng,
                   const double delta,
                   const bint unique,
+                  const bint mean0,
                   double[:] aux_double_mem,
                   long[:,:] aux_long_mem,
-                  long[:] output_indices) nogil:
+                  long[:] output_indices) noexcept nogil:
     
     """Produces a kt.thin(m = 1) coreset of size n//2 given
     a size n x n kernel matrix K and stores it in output_indices.
-    Uses order n^2 memory, as a kernel matrix is maintained in memory.
     
     Note: Assumes that n is even.
     Note: Returned coreset indices need not be sorted.
@@ -62,6 +64,12 @@ cdef void thin_K(const double[:, :] K,
       unique: If True, constrains the output to never contain the same row index 
         more than once and symmetrizes output by returning the chosen coreset
         or its complement with equal probability
+      mean0: If False, the KT-SWAP stage will minimize MMD to the empirical 
+        distribution Pn over the n input points by (implicitly) recentering 
+        the kernel matrix with respect to Pn.  If True, no recentering is 
+        performed. This is useful when the kernel is already centered with 
+        respect to a target distribution P as then KT-SWAP will minimize 
+        MMD to P.
       aux_double_mem: scratch space array of size 2n; will be modified in place
       aux_long_mem: scratch space array of size (2, n//2); will be modified in place
       output_indices: array of size n//2, would store the output row indices into K
@@ -71,9 +79,12 @@ cdef void thin_K(const double[:, :] K,
     
     if n == 4:
         # Use optimized implementation when n == 4
-        opt_halve4_K(K,
-                     random_standard_uniform(rng),
-                     output_indices) 
+        if mean0:
+            opt_halve4_mean0_K(K, output_indices)
+        else:
+            opt_halve4_K(K,
+                         random_standard_uniform(rng),
+                         output_indices) 
         return
 
     ########## halve_K ##########
@@ -95,18 +106,23 @@ cdef void thin_K(const double[:, :] K,
     cdef long[:] non_coreset = coresets[1]
 
     ########## best_K ##########
-    
-    # Compute the row means of K (i.e., meanK = K.mean(axis=1))
-    # for best_K and refine_K
-    # Store in first half of aux_double_mem
-    cdef double[:] meanK = aux_double_mem[:n]
+
+    cdef double[:] meanK
     cdef const double[:] K_i
-    for i in range(n):
-        meanK[i] = 0
-        K_i = K[i]
-        for j in range(n):
-            meanK[i] += K_i[j]
-        meanK[i] /= n
+    if mean0:
+        # No recentering is necessary: make meanK None
+        meanK = None
+    else:
+        # Recentering is necessary: 
+        # compute the row means of K (i.e., meanK = K.mean(axis=1))
+        # for best_K and refine_K and store in first half of aux_double_mem
+        meanK = aux_double_mem[:n]
+        for i in range(n):
+            meanK[i] = 0
+            K_i = K[i]
+            for j in range(n):
+                meanK[i] += K_i[j]
+            meanK[i] /= n
         
     # Store standard thinning coreset in output_indices
     # np.flip(np.arange(n-1,-1,-(n//coreset_size)))
@@ -166,7 +182,7 @@ cdef void thin_K(const double[:, :] K,
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef void opt_halve4_K(const double[:,:] K,
                         const double uniform,
-                        long[:] coreset) nogil:
+                        long[:] coreset) noexcept nogil:
     """Identifies a two-point coreset with smallest MMD to the four-point input point set X.
     If uniform < .5, stores those point indices in coreset; otherwise, stores the complement of  
     those indices in coreset. Here X is implicitly represented by its kernel matrix K satisfying 
@@ -211,7 +227,39 @@ cpdef void opt_halve4_K(const double[:,:] K,
             coreset[0] = 0; coreset[1] = 2
         else:
             coreset[0] = 1; coreset[1] = 3 
+
+@cython.boundscheck(False) # turn off bounds-checking for this function
+@cython.wraparound(False)  # turn off negative index wrapping for this function
+@cython.initializedcheck(False) # turn off memoryview initialization checks for this function
+@cython.cdivision(True) # Disable C-division checks for this function
+cpdef void opt_halve4_mean0_K(const double[:,:] K,
+                              long[:] coreset) noexcept nogil:
+    """Identifies a two-point coreset with smallest MMD to the zero measure.
+    Here X is implicitly represented by its kernel matrix K satisfying 
+    K[ii,:] = kernel(X[ii], X).
     
+    Args:
+      K: Matrix of pairwise kernel evaluations with shape (4, 4)
+      coreset: Preallocated 1D array with length 2 representing the coreset of 
+        row indices into K to be returned; will be modified in place
+    """
+    cdef long i, j
+    cdef double sqd_mmd, best_sqd_mmd, diagK_j
+
+    # Start with coreset (0,1)
+    coreset[0] = 0
+    coreset[1] = 1
+    best_sqd_mmd = K[0,0] + K[1,1] + 2*K[0,1]
+    # Check if any other coreset has smaller sqd_mmd to 0 measure
+    for j in range(2,4):
+        diagK_j = K[j,j]
+        for i in range(0,j):
+            sqd_mmd = diagK_j + K[i,i] + 2*K[i,j]
+            if sqd_mmd < best_sqd_mmd:
+                best_sqd_mmd = sqd_mmd
+                coreset[0] = i; coreset[1] = j
+
+
 @cython.boundscheck(False) # turn off bounds-checking for this function
 @cython.wraparound(False)  # turn off negative index wrapping for this function
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
@@ -219,21 +267,30 @@ cpdef void opt_halve4_K(const double[:,:] K,
 cpdef void halve_K(const double[:,:] K,
                    const double delta,
                    const double[:] uniforms,
-                   long[:,:] coresets) nogil:    
-    """Identifies two KT-SPLIT coresets of size floor(n/2) and stores them in coresets.
-    This is a faster implementation of kt.split_K with m = 1.
-    Uses order n^2 memory, as a kernel matrix is maintained in memory.
+                   long[:,:] coresets,
+                   const long[:] input_indices = None) noexcept nogil:    
+    """Identifies two KT-SPLIT coresets of size floor(n/2) and stores them 
+    in coresets. If input_indices is None, partitions the n row indices of K.
+    Otherwise, partitions the n indices indicated in input_indices.
     
     Args:
-      K: Matrix of KT-SPLIT kernel evaluations with shape (n, n)
+      K: 2D array of KT-SPLIT kernel evaluations 
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
-      uniforms: Array of floor(n/2) independent random variables uniformly distributed on 
-        the unit interval [0,1]
+      uniforms: Array of at least floor(n/2) independent random variables 
+        uniformly distributed on the unit interval [0,1]
       coresets: Array of shape (2, floor(n/2)) for storing KT-SPLIT coresets; will be
         modified in place
+      input_indices: None or array of indices of length n indexing the rows and 
+        columns of K
     """
+    cdef bint no_indices = input_indices is None
     
-    cdef long n = K.shape[0]
+    cdef long n
+    if no_indices:
+        n = K.shape[0]
+    else:
+        n = input_indices.shape[0]
+        
     cdef long num_points_in_coreset = n//2
     
     cdef double sig_sqd = 0
@@ -244,8 +301,12 @@ cpdef void halve_K(const double[:,:] K,
     cdef double b_sqd, thresh, alpha, prob_point1
     cdef long j, c1j, c0j
     for i in range(num_points_in_coreset):
-        point0 = 2*i
-        point1 = 2*i+1
+        if no_indices:
+            point0 = 2*i
+            point1 = 2*i+1
+        else:
+            point0 = input_indices[2*i]
+            point1 = input_indices[2*i+1]
         # Compute b^2 = ||f||^2 = ||k(point0,.) - k(point1,.)||_k^2
         b_sqd = K[point0,point0] - 2*K[point0,point1] + K[point1,point1] 
         # Compute adaptive failure threshold
@@ -283,7 +344,110 @@ cpdef void halve_K(const double[:,:] K,
         else:
             coresets[0,i] = point0
             coresets[1,i] = point1
+            
+'''
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% KT-SPLIT Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+'''
+@cython.boundscheck(False) # turn off bounds-checking for this function
+@cython.wraparound(False)  # turn off negative index wrapping for this function
+@cython.initializedcheck(False) # turn off memoryview initialization checks for this function
+@cython.cdivision(True) # Disable C-division checks for this function
+cpdef void split_K(const double[:,:] K,
+                   const double delta,
+                   const double[:,:] uniforms,
+                   long[:,:] coresets) noexcept nogil:
+    """Identifies 2^m KT-SPLIT coresets of size floor(n/2^m) and stores them 
+    in coresets.
+    
+    Args:
+      K: Matrix of KT-SPLIT kernel evaluations with shape (n, n)
+      delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
+      uniforms: Array of shape (m, floor(n/2)) of independent random variables 
+        uniformly distributed on the unit interval [0,1]
+      coresets: Array of shape (2^m, floor(n/2^m)) for storing KT-SPLIT coresets; will be
+        modified in place
+    """
+    cdef long m = uniforms.shape[0]    
+    if m == 1:
+        # Use streamlined kernel halving implementation
+        halve_K(K, delta, uniforms[0], coresets)
+        return
+    cdef long i
+    if m == 0:
+        # Return range(K.shape[0]) as single coreset
+        for i in range(K.shape[0]):
+            coresets[0,i] = i
+        return
 
+    # Record the total number of elements in the output coresets array
+    # We refer to this as n even though it is 2^m floor(n/2^m) in the notation
+    # of the function header comment
+    cdef long n = coresets.shape[0]*coresets.shape[1]
+
+    
+    # Allocate auxiliary memory for storing input indices
+    cdef long *input_ptr = <long *> malloc(n * sizeof(long))
+    # Obtain pointer to coresets memory
+    cdef long *output_ptr = &coresets[0,0]
+
+    # Maintain input coreset memoryview
+    cdef long [:,:] input_coresets
+    with gil:        
+        if m % 2 == 0:
+            # When m is even, point input to output_ptr memory initially
+            input_coresets = <long[:1, :n]>output_ptr
+            # Then point output_ptr to input memory
+            output_ptr = input_ptr
+        else: 
+            # When m is odd, point input to input_ptr initially
+            input_coresets = <long[:1, :n]>input_ptr
+    
+    # Initialize input_coresets to range(n)
+    for i in range(n):
+        input_coresets[0,i] = i
+    
+    # Maintain auxiliary memoryview for output coresets
+    cdef long [:,:] output_coresets
+        
+    cdef long num_input_coresets = 1, output_coreset_size = n // 2
+    cdef long uniforms_j_start, output_start
+    cdef const double[:] uniforms_j
+    # For each halving round
+    cdef long j, l
+    for j in range(m):
+        if j == m-1:
+            # Final halving round: use provided coresets array
+            output_coresets = coresets
+        else:
+            # Cast output pointer to memoryview with size (2^{j+1}, n//2^{j+1}) 
+            with gil:
+                output_coresets = <long[:num_input_coresets*2, :output_coreset_size]>output_ptr
+
+        # Partition each input coreset into halves using failure probability
+        # delta * 2^j / m  and appropriate subset of uniform variables;
+        # store results into associated output_coresets
+        uniforms_j = uniforms[j]
+        uniforms_j_start = 0
+        output_start = 0
+        for l in range(num_input_coresets):
+            halve_K(K,  
+                    delta * num_input_coresets / m, 
+                    uniforms_j[uniforms_j_start:],
+                    output_coresets[output_start:output_start+2],
+                    input_coresets[l])
+            uniforms_j_start += output_coreset_size
+            output_start += 2
+            
+        # Use this round's output coresets as next round's input_indices
+        output_ptr = &input_coresets[0,0]
+        input_coresets = output_coresets
+        # Update input / output sizes and counts
+        num_input_coresets *= 2
+        output_coreset_size = output_coreset_size // 2
+
+    # Free allocated memory
+    free(input_ptr)
+    
 '''
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% KT Best Functionality %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 '''
@@ -292,17 +456,19 @@ cpdef void halve_K(const double[:,:] K,
 @cython.initializedcheck(False) # turn off memoryview initialization checks for this function
 @cython.cdivision(True) # Disable C-division checks for this function
 cpdef const long[:] best_K(const double[:,:] K,
-                          const long[:,:] coresets,
-                          const double[:] meanK,
-                          const long[:] best_coreset) nogil:
-    """Selects the candidate coreset with smallest MMD to all input points in X (after comparing with
-    a baseline standard thinning coreset).  
-    Here X is implicitly represented by its kernel matrix K satisfying K[ii,:] = kernel(X[ii], X).
+                           const long[:,:] coresets,
+                           const double[:] meanK,
+                           const long[:] best_coreset) noexcept nogil:
+    """After comparing with a baseline standard thinning coreset,
+    selects the candidate coreset with smallest MMD to all input points in X
+    (if meanK is not None) or to the zero measure (if meanK is None).
+    Here X is implicitly represented by its kernel matrix K satisfying 
+    K[ii,:] = kernel(X[ii], X).
     
     Args:
       K: Matrix of kernel evaluations with shape (n, n)
       coresets: 2D array with each row specifying the row indices of X belonging to a coreset
-      meanK: Array of length n with meanK[ii] = mean of K[ii,:]
+      meanK: None or array of length n with meanK[ii] = mean of K[ii,:]
       best_coreset: 1D array containing a coreset produced by standard thinning
     """
     cdef long num_coresets = coresets.shape[0]
@@ -312,7 +478,7 @@ cpdef const long[:] best_K(const double[:,:] K,
     cdef double rel_mmd2
     cdef long i
     # Select the better of standard thinning coreset and the best input coreset
-    if num_coresets == 2:
+    if (num_coresets == 2) and (meanK is not None):
         # Only compare to first coreset, as the two coresets have equal MMD
         # when n is even
         rel_mmd2 = squared_emp_rel_mmd_K(K, coresets[0], meanK)
@@ -333,23 +499,40 @@ cpdef const long[:] best_K(const double[:,:] K,
 @cython.cdivision(True) # Disable C-division checks for this function
 cdef double squared_emp_rel_mmd_K(const double[:,:] K,
                                   const long[:] coreset,
-                                  const double[:] meanK) nogil:
-    """Computes squared empirical relative MMD between a distribution weighted equally 
-    on all points and one weighted equally on the indices in coreset.
-    RelMMD^2 = MMD^2 - np.mean(K) = np.mean(K[coreset][:,coreset]) - 2*np.mean(K[coreset, :]))
+                                  const double[:] meanK) noexcept nogil:
+    """Computes squared empirical relative MMD between a distribution weighted
+    equally on all points and one weighted equally on the indices in coreset:
+    RelMMD^2 = MMD^2 - np.mean(K) 
+             = np.mean(K[coreset][:,coreset]) - 2*np.mean(K[coreset, :]))
+
+    If meanK is None, then computes squared MMD between a distribution weighted
+    equally on the indices in coreset and the zero measure:
+    RelMMD^2 = np.mean(K[coreset][:,coreset]) 
     
     Args:
       K: Matrix of pairwise kernel evaluations with shape (n, n)
       coreset: Row indices of K representing coreset
-      meanK: Array of length n with meanK[ii] = mean of K[ii,:]
+      meanK: None or array of length n with meanK[ii] = mean of K[ii,:]
     """
     cdef long coreset_size = coreset.shape[0]
     cdef long sqd_coreset_size = coreset_size * coreset_size
     
-    # Compute rel_mmd2 = np.mean(K[coreset][:,coreset]) - 2*np.mean(meanK[coreset])
     cdef double rel_mmd2 = 0
-    cdef double K_cset_i_coreset_sum
     cdef long i, j, cset_i
+    if meanK is None:
+        # Compute rel_mmd2 = np.mean(K[coreset][:,coreset])
+        for i in range(coreset_size):
+            cset_i = coreset[i]
+            # Compute contribution of cset_i:
+            # np.sum(K[coreset[i], coreset]) 
+            for j in range(coreset_size):
+                rel_mmd2 += K[cset_i,coreset[j]]
+        # Normalize by number of entries
+        return(rel_mmd2 / sqd_coreset_size)
+    
+    # Otherwise, compute  
+    # rel_mmd2 = np.mean(K[coreset][:,coreset]) - 2*np.mean(meanK[coreset])
+    cdef double K_cset_i_coreset_sum
     for i in range(coreset_size):
         cset_i = coreset[i]
         # Compute contribution of cset_i:
@@ -375,20 +558,21 @@ cpdef void refine_K(const double[:,:] K,
                     const double[:] meanK,
                     double[:] sufficient_stat,
                     const bint unique,
-                    long[:] non_coreset) nogil:
+                    long[:] non_coreset) noexcept nogil:
     """
-    Replaces each element of a coreset in turn by the input point that yields the greateest 
-    decrease in MMD between all input points and the resulting coreset. Here X is implicitly
-    represented by its kernel matrix K satisfying K[ii,:] = kernel(X[ii], X).
-    Uses order n^2 memory, as a kernel matrix is maintained in memory.
+    Replaces each element of a coreset in turn by the input point that yields 
+    the greatest decrease in MMD between the resulting coreset and all input 
+    points (if meanK is not None) or between the resulting coreset and the 
+    zero measure (if meanK is None).
+    Here X is implicitly represented by its kernel matrix K satisfying 
+    K[ii,:] = kernel(X[ii], X).
     
     Note: Returned coreset and non_coreset indices need not be sorted.
     
     Args:
       K: Matrix of kernel evaluations with shape (n, n)
       coreset: Row indices of K representing coreset; will be modified in place
-      meanK: None or array of length n with meanK[ii] = mean of kernel(X[ii], X);
-        used to speed up computation when not None
+      meanK: None or array of length n with meanK[ii] = mean of K[ii,:]
       sufficient_stat: Array of shape (n) for storing sufficient statistics; 
         will be modified in place
       unique: If True, constrains the output to never contain the same row index more than once
@@ -400,28 +584,42 @@ cpdef void refine_K(const double[:,:] K,
     cdef long n = K.shape[0]
     cdef long coreset_size = coreset.shape[0]
     cdef double two_over_coreset_size = 2./coreset_size
-    cdef long non_coreset_size = non_coreset.shape[0]
     
-    # Compute sufficient statistic representing how much each point would change the quantity
-    # coreset_size * MMD^2(P,Q) if added into the coreset with weight 1/coreset_size
-    #   coreset_size * MMD^2(P,Q) = coreset_size * (PPk - 2QPK + QQK)
-    #   impact of adding (1/coreset_size) delta_y to Q = -2 delta_y PK + delta_y delta_y K / coreset_size + 2 delta_y Q K 
-    # Statistic will later be adjusted to remove the influence of an eliminated point
+    # Compute sufficient statistic representing how much each point would 
+    # change the quantity coreset_size * MMD^2(P,Q) if added into the coreset
+    # with weight 1/coreset_size.
+    # Since coreset_size * MMD^2(P,Q) = coreset_size * (PPk - 2QPK + QQK),
+    # the impact of adding (1/coreset_size) delta_y to Q = 
+    #   -2 delta_y PK + delta_y delta_y K / coreset_size + 2 delta_y Q K.
+    # Statistic will later be adjusted to remove the influence of an 
+    # eliminated point
     cdef long i, j
     cdef double meanK_i_coreset
-    for i in range(n):
-        sufficient_stat[i] = K[i,i]/coreset_size
-        meanK_i_coreset = 0
-        for j in range(coreset_size):
-            meanK_i_coreset += K[i,coreset[j]]
-        meanK_i_coreset /= coreset_size
-        sufficient_stat[i] += 2*(meanK_i_coreset-meanK[i])
+    if meanK is None:
+        # Target measure P is the zero measure, so Pk = 0
+        for i in range(n):
+            meanK_i_coreset = 0
+            for j in range(coreset_size):
+                meanK_i_coreset += K[i,coreset[j]]
+            sufficient_stat[i] = (K[i,i] + 2*meanK_i_coreset) / coreset_size
+    else:
+        # Target measure P is the empirical measure over input points
+        for i in range(n):
+            sufficient_stat[i] = K[i,i]/coreset_size
+            meanK_i_coreset = 0
+            for j in range(coreset_size):
+                meanK_i_coreset += K[i,coreset[j]]
+            meanK_i_coreset /= coreset_size
+            sufficient_stat[i] += 2*(meanK_i_coreset-meanK[i])
     
     cdef long idx_into_coreset = 0
     cdef long coreset_point = coreset[idx_into_coreset]
     cdef long best_idx_into_non_coreset
     cdef long best_point, non_coreset_point
     cdef double min_sufficient_stat, stat_i
+    cdef long non_coreset_size
+    if unique:
+        non_coreset_size = non_coreset.shape[0]
     
     while True:
         # Remove the contribution of coreset point from the normalized coreset sum in sufficient stat: 

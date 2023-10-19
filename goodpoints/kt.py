@@ -34,8 +34,9 @@ def thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False,
     Args:
       X: Input sequence of sample points with shape (n, d)
       m: Number of halving rounds (integer >= 0)
-      split_kernel: Kernel function used by KT-SPLIT (typically a square-root kernel, krt);
-        split_kernel(y,X) returns array of kernel evaluations between y and each row of X
+      split_kernel: Kernel function used by KT-SPLIT (often a square-root kernel, krt,
+        or a target kernel, k); split_kernel(y,X) returns array of kernel evaluations 
+        between y and each row of X
       swap_kernel: Kernel function used by KT-SWAP (typically the target kernel, k);
         swap_kernel(y,X) returns array of kernel evaluations between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
@@ -74,8 +75,9 @@ def thin_X(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, meanK=None,
     Args:
       X: Input sequence of sample points with shape (n, d)
       m: Number of halving rounds (integer >= 0)
-      split_kernel: Kernel function used by KT-SPLIT (often a square-root kernel, krt);
-        split_kernel(y,X) returns array of kernel evaluations between y and each row of X
+      split_kernel: Kernel function used by KT-SPLIT (often a square-root kernel, krt,
+        or a target kernel, k); split_kernel(y,X) returns array of kernel evaluations 
+        between y and each row of X
       swap_kernel: Kernel function used by KT-SWAP (typically the target kernel, k);
         swap_kernel(y,X) returns array of kernel evaluations between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
@@ -193,8 +195,9 @@ def split(X, m, kernel, delta=0.5, seed=None, store_K=False, verbose=False):
     Args:
       X: Input sequence of sample points with shape (n, d)
       m: Number of halving rounds
-      kernel: Kernel function (typically a square-root kernel, krt);
-        kernel(y,X) returns array of kernel evaluations between y and each row of X
+      kernel: Kernel function (often a square-root kernel, krt,
+        or a target kernel, k); kernel(y,X) returns array of kernel evaluations 
+        between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None, no seed will be set
       store_K: If False, runs O(nd) space version which does not store kernel
@@ -217,8 +220,9 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     Args:
       X: Input sequence of sample points with shape (n, d)
       m: Number of halving rounds
-      kernel: Kernel function (typically a square-root kernel, krt);
-        kernel(y,X) returns array of kernel evaluations between y and each row of X
+      kernel: Kernel function (often a square-root kernel, krt,
+        or a target kernel, k); kernel(y,X) returns array of kernel evaluations 
+        between y and each row of X
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None, no seed will be set
       verbose: Print progress information?

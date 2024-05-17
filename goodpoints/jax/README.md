@@ -1,7 +1,7 @@
 This package contains algorithms from Debiased Distribution Compression by Li et al. 2024 implemented in JAX.
 
 ## Debiased distribution compression algorithms
-The `dtc.py` module contains the meta debiased-then-compress algorithm for debiased compression along with 6 instantiations corresponding to the 6 algorithms in the paper.
+The `dtc.py` module contains the meta debias-then-compress algorithm for debiased compression along with 6 instantiations corresponding to the 6 algorithms in the paper.
 
 ## Details on available algorithms
 
@@ -24,7 +24,7 @@ The `kernel/` package includes modules to build kernels with automatic kernel pa
 The `serial/` package provides utilities for serialization and caching of intermediate outputs.
 
 ## Dependencies
-The main dependency is JAX whose install instructions can be found at [here](https://jax.readthedocs.io/en/latest/quickstart.html).
+The main dependency is JAX; the install instructions can be found at [here](https://jax.readthedocs.io/en/latest/quickstart.html).
 
 Additional requirements:
 - `tqdm` (progress bars)

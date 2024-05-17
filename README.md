@@ -7,14 +7,14 @@ GoodPoints is a collection of tools for compressing a distribution more effectiv
 - Given an initial summary of n input points, **kernel thinning** returns s << n output points with comparable integration error across a reproducing kernel Hilbert space
 - **Compress++** reduces the runtime of generic thinning algorithms with minimal loss in accuracy
 - **Compress Then Test** accelerates kernel two-sample testing using high-fidelity compression
-- **Debiased Distribution Compression** provides a suite of JAX-accelerated methods for debiasing and compressing input points, supporting equal-weighted, simplex-weighted, and constant-preserving coresets
+- **Stein Kernel Thinning**, **Stein Recombination**, and **Stein Cholesky** deliver unweighted, simplex-weighted, and constant-preserving coresets that reduce biases due to off-target sampling, tempering, or burn-in
 
 ## Installation
 To install the `goodpoints` package, use the following pip command:
 ```
 pip install goodpoints
 ```
-For **Debiased Distribution Compression**, JAX and additional independencies are required. See [goodpoints/jax](goodpoints/jax) for more details.
+For **Debiased Distribution Compression**, JAX and additional dependencies are required. See [goodpoints/jax](goodpoints/jax) for more details.
 
 ## Getting started
 The primary kernel thinning function is `thin` in the `kt` module:
@@ -177,11 +177,15 @@ See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 
 #### [Debiased Distribution Compression](https://arxiv.org/pdf/2404.12290)
 ```
-@article{li2024debiased,
-    title={Debiased Distribution Compression},
-    author={Li, Lingxiao and Dwivedi, Raaz and Mackey, Lester},
-    journal={arXiv preprint arXiv:2404.12290},
-    year={2024}
+@InProceedings{li2024debiased,
+    title = {Debiased Distribution Compression},
+    author = {Li, Lingxiao and Dwivedi, Raaz and Mackey, Lester},,
+    booktitle = {Proceedings of the 41st International Conference on Machine Learning},
+    year = {2024},
+    volume = {203},
+    series = {Proceedings of Machine Learning Research},
+    month = {21--27 Jul},
+    publisher = {PMLR},
 }
 ```
 See [examples/debias/README.md](examples/debias/README.md).

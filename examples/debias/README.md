@@ -49,7 +49,7 @@ We also provide a script `tmux_spawn.py` to spawn multiple agents to run the swe
 The observation data for the approximate MCMC experiment in the paper is provided in `src/data/covertype.mat`.
 We use `numpyro` to generate the gold points using HMC for evaluation purposes, and this will occur automatically when running the experiment for the first time.
 Since we are generating 1 million samples using HMC, it can take many hours.
-Alternatively, you can download the gold points from [this link]() and change `problem.gold.save_file` in `src/config/approx.yaml`to point to the downloaded file (or via the command line).
+Alternatively, you can download the gold points from [this link](https://www.dropbox.com/scl/fi/o3zyeutambgcf1yfwk3tg/covtype_gold_logistic_1mil.npy?rlkey=czpbejog0j59wdv54n9fuly52&st=ka0itbe2&dl=0) and change `problem.gold.save_file` in `src/config/approx.yaml`to point to the downloaded file (or via the command line).
 
 To run a single approximate MCMC correction experiment using Stein Kernel Thinning, with `examples/debias` being the current working directory, run
 ```

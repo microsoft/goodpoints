@@ -7,12 +7,15 @@ GoodPoints is a collection of tools for compressing a distribution more effectiv
 - Given an initial summary of n input points, **kernel thinning** returns s << n output points with comparable integration error across a reproducing kernel Hilbert space
 - **Compress++** reduces the runtime of generic thinning algorithms with minimal loss in accuracy
 - **Compress Then Test** accelerates kernel two-sample testing using high-fidelity compression
+- **Stein Kernel Thinning**, **Stein Recombination**, and **Stein Cholesky** deliver unweighted, simplex-weighted, and constant-preserving coresets that reduce biases due to off-target sampling, tempering, or burn-in
 
 ## Installation
 To install the `goodpoints` package, use the following pip command:
 ```
 pip install goodpoints
 ```
+For **Debiased Distribution Compression**, JAX and additional dependencies are required. See [goodpoints/jax](goodpoints/jax) for more details.
+
 ## Getting started
 The primary kernel thinning function is `thin` in the `kt` module:
 ```python
@@ -103,6 +106,14 @@ test_results = ctt.ctt(X1, X2, g)
 ```
 For example uses, please refer to [examples/mmd_test/test.py](examples/mmd_test/test.py).
 
+The primary Debiased Distribution Compression functions are in the `jax.dtc` module, including:
+- Stein Kernel Thinning (`skt`) and Low-rank Stein Kernel Thinning (`lskt`) for equal-weighted coresets
+- Stein Recombination (`sr`) and Low-rank Stein Recombination (`lsr`) for simplex-weighted coresets
+- Stein Cholesky (`sc`) and Low-rank Stein Cholesky (`lsc`) for constant-preserving coresets
+
+Moreover, Debiased Distribution Compression provides JAX implementation of Kernel Thinning, Compress++, and [Stein Thinning](https://arxiv.org/pdf/2005.03952) that can be of independent interest.
+Please refer to [goodpoints/jax/README.md](goodpoints/jax/README.md) for all available functions.
+
 ## Examples
 
 Code in the `examples` directory uses the `goodpoints` package to recreate the experiments of the following research papers.
@@ -163,6 +174,21 @@ by executing `examples/kt/run_kt_experiment.ipynb` with appropriate parameters. 
 }
 ```
 See [examples/mmd_test/README.md](examples/mmd_test/README.md).
+
+#### [Debiased Distribution Compression](https://arxiv.org/pdf/2404.12290)
+```
+@InProceedings{li2024debiased,
+    title = {Debiased Distribution Compression},
+    author = {Li, Lingxiao and Dwivedi, Raaz and Mackey, Lester},,
+    booktitle = {Proceedings of the 41st International Conference on Machine Learning},
+    year = {2024},
+    volume = {203},
+    series = {Proceedings of Machine Learning Research},
+    month = {21--27 Jul},
+    publisher = {PMLR},
+}
+```
+See [examples/debias/README.md](examples/debias/README.md).
 
 ## Contributing
 

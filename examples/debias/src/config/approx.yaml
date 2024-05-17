@@ -1,0 +1,39 @@
+defaults:
+  - debias: st
+  - compress: kt
+  - cache: dummy
+  - _self_
+
+problem:
+  model:
+    name: 'logistic'
+    use_probit: false
+    subsample: 10000
+    data_name: 'covtype'
+    data_folder: 'src/approx/data'
+    prior: 'gaussian'
+  gold:
+    save_file: 'src/approx/data/covtype_gold_logistic_1mil.npy'
+    num_warmup: 2000
+    num_sample: 10000
+  mcmc:
+    save_folder: 'src/approx/data/mcmc'
+    seed: 1
+    sampler: 'sgfs'
+    num_warmup: 0
+    num_step: 16777216
+    num_sample: 1048576
+    batch_size: 32
+    step_size: 1.0
+    diag_inv: false # for sgfs
+    base_time: 1
+    decay_alpha: 0.55
+  post:
+    num_point: -1
+    full_batch_score: true
+
+out_size: 'n**0.5'
+
+jax:
+  platforms: cuda
+  enable_x64: true

@@ -1,0 +1,5 @@
+name: 'mongodb'
+uri: null # enter your mongodb uri here
+db_name: 'ddc'
+collection_name: 'default'
+retry_interval: 5

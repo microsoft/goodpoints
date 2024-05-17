@@ -1,0 +1,11 @@
+name: lr
+rank: 'm'
+num_iter: '7*n**0.5'
+num_adapt: 3
+rounding: true
+correct_diag: true
+use_float64: false
+nys_approx: false
+step_size: 'inv_avg_diag'
+restart: true
+log_freq: 50

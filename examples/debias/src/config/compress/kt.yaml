@@ -1,0 +1,5 @@
+name: kt
+inflate_size: 'n'
+out_size: 'm'
+delta: 0.5
+seed: 1

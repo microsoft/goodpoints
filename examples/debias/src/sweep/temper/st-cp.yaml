@@ -1,0 +1,34 @@
+program: src.temper.run
+method: grid
+parameters:
+  cache:
+    value: 'mongodb'
+  cache.collection_name:
+    value: 'temper'
+  problem.folder:
+    values: [
+      '../../../riabiz_data/Cardiac/Tempered_posterior/seed_1',
+    ]
+  problem.point_score_file:
+    values: ['points_scores_nowarmup.h5']
+  problem.fmt:
+    values: ['h5']
+  problem.num_sample:
+    values: [1024, 4096, 16384, 65536, 262144, 1048576]
+  problem.seed:
+    values: [1, 2, 3, 4, 5]
+  debias:
+    value: 'noop'
+  compress:
+    value: 'st'
+  compress.coreset_type:
+    value: 'cp'
+  out_size:
+    values: ['n**0.5']
+
+command:
+  - ${env}
+  - python
+  - '-m'
+  - ${program}
+  - ${args_no_hyphens}

@@ -1,0 +1,24 @@
+defaults:
+  - debias: st
+  - compress: kt
+  - cache: dummy
+  - _self_
+
+problem:
+  folder: '../../../riabiz_data/Goodwin/PRECOND-MALA'
+  gold_folder: '../reference'
+  point_file: theta.csv
+  score_file: grad.csv
+  meta_file: meta.yaml
+  burnin: low
+  remove_burnin: false
+  fmt: csv
+  point_score_file: null
+  num_sample: 65536
+  seed: 1
+
+out_size: 'n**0.5'
+
+jax:
+  platforms: cuda
+  enable_x64: true

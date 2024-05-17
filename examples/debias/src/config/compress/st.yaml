@@ -1,0 +1,5 @@
+name: st
+inflate_size: 'n'
+out_size: 'm'
+coreset_type: 'integer'
+seed: 1

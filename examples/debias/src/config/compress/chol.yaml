@@ -1,0 +1,4 @@
+name: chol
+out_size: 'm'
+c: 'auto'
+seed: 1

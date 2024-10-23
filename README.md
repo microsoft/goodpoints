@@ -120,11 +120,14 @@ Code in the `examples` directory uses the `goodpoints` package to recreate the e
 ***
 #### [Kernel Thinning](https://arxiv.org/pdf/2105.05842.pdf)
 ```
-@article{dwivedi2021kernel,
+@article{dwivedi2024kernel,
   title={Kernel Thinning},
-  author={Raaz Dwivedi and Lester Mackey},
-  journal={arXiv preprint arXiv:2105.05842},
-  year={2021}
+  author={Dwivedi, Raaz and Mackey, Lester},
+  journal={Journal of Machine Learning Research},
+  volume={25},
+  number={152},
+  pages={1--77},
+  year={2024}
 }
 ```
 1. The script `examples/kt/submit_jobs_run_kt.py` reproduces the vignette experiments of Kernel Thinning  on a Slurm cluster

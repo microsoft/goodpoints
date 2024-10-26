@@ -69,8 +69,8 @@ def load_db(collection_name, *,
                 except Exception as e:
                     print(e)
             if len(results[metrics[0]]) == 0:
-                result_med[i, :] = np.NAN
-                result_std[i, :] = np.NAN
+                result_med[i, :] = np.nan
+                result_std[i, :] = np.nan
             else:
                 for l, metric in enumerate(metrics):
                     arr = np.array(results[metric])

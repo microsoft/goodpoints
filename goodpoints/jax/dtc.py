@@ -124,7 +124,7 @@ def skt(kernel, points, out_size, seed=None):
     '''
     n = points.length
     rng_gen = np.random.default_rng(seed)
-    inflate_size = out_size * log2_ceil(n, out_size)
+    inflate_size = out_size * (2 ** log2_ceil(n, out_size))
     w_debias, coreset = stein_thin(kernel, points, inflate_size)
     coreset = kt(kernel, points, w_debias, rng_gen,
                  inflate_size=inflate_size,

@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from distutils.extension import Extension
 from Cython.Build import cythonize
 from os.path import join, dirname
@@ -51,5 +51,6 @@ extensions = [
 include_path = ["goodpoints"]
 
 setup(include_package_data=True,
+      packages=find_packages(), 
       ext_modules=cythonize(extensions, language_level = "3",
                             include_path=include_path))

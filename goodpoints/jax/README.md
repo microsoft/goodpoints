@@ -1,7 +1,18 @@
 This package contains algorithms from Debiased Distribution Compression by Li et al. 2024 implemented in JAX.
 
+## Demos
+See [here](https://github.com/microsoft/goodpoints/tree/main/examples/debias/notebook/demo) for examples of how to use various algorithms provided by this package.
+
 ## Debiased distribution compression algorithms
-The `dtc.py` module contains the meta debias-then-compress algorithm for debiased compression along with 6 instantiations corresponding to the 6 algorithms in the paper.
+The `dtc.py` module contains the meta debias-then-compress algorithm for debiased compression along with 6 instantiations (functions `skt`, `lskt`, `sr`, `lsr`, `sc`, `lsc`) corresponding to the 6 algorithms in the paper.
+
+### Usage
+All debiased compression algorithms have the same input and output formats. 
+For instance, Stein kernel thinning implementation `skt` function has signature `skt(kernel, points, out_size)` where
+- `kernel` is a function implemented in JAX that broadcasts the two input point sets
+- `points` is a `SliceablePoints` instance, and `out_size` is the output size. `SliceablePoints` is a data structure that includes the input points as well as precomputed statistics used for kernel evaluation. 
+- This function returns two numpy arrays, `w_thin` and `supp`, where `w_thin` is the weight vector of the coreset of size equal to `points`, and `supp` is a list of indices of the support of the coreset. Hence, the coreset can be recovered as point set `points[supp]` with weight vector `w_thin[supp]`.
+An example of `skt` is given in `demo/mixture_skt.ipynb`.
 
 ## Details on available algorithms
 

@@ -182,7 +182,7 @@ See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 ```
 @InProceedings{li2024debiased,
     title = {Debiased Distribution Compression},
-    author = {Li, Lingxiao and Dwivedi, Raaz and Mackey, Lester},,
+    author = {Li, Lingxiao and Dwivedi, Raaz and Mackey, Lester},
     booktitle = {Proceedings of the 41st International Conference on Machine Learning},
     year = {2024},
     volume = {203},

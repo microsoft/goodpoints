@@ -1,16 +1,8 @@
 import numpy as np
 import time
-import math
-import os
-import argparse
-import pickle
 import scipy
-from goodpoints import kt
-from goodpoints import compress
-from goodpoints import gaussianc, cttc
-from goodpoints import ctt
+from goodpoints import gaussianc
 from functools import partial
-from itertools import product
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Constants %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,21 +12,6 @@ SQRT_2 = np.sqrt(2)
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Kernel functions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-
-                      
-def lambda_computation(X1,X2):
-    """
-    given samples X1, X2, compute bandwidth according to median criterion.
-    
-    X1: 2D array of size (n1,dimension)
-    X2: 2D array of size (n2,dimension)
-    """
-    n1 = X1.shape[0]
-    n2 = X2.shape[0]
-    X1_expanded = np.tile(np.expand_dims(X1, axis=1),(1,n2,1))
-    X2_expanded = np.tile(np.expand_dims(X2, axis=0),(n1,1,1))
-    distances = np.linalg.norm(X1_expanded-X2_expanded,axis=2)
-    return SQRT_2*np.median(distances)
 
 def median_criterion(X1,X2):
     """

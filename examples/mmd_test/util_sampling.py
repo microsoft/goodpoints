@@ -1,18 +1,8 @@
 import numpy as np
 import time
-import math
 import os
-import argparse
 import pickle
-import scipy
-import urllib.request
-from goodpoints import kt
-from goodpoints import compress
-#import goodpoints.gaussian as gaussc
-from functools import partial
-from sklearn.datasets import fetch_openml
-from itertools import product
-from emnist import list_datasets, extract_training_samples, extract_test_samples
+from emnist import extract_training_samples
 
 """
 %%%%%%%%%%% Sampling functions %%%%%%%%%%%

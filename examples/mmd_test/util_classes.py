@@ -1,16 +1,6 @@
 import numpy as np
-import time
-import math
 import os
-import argparse
 import pickle
-import scipy
-from goodpoints import kt
-from goodpoints import compress
-#import goodpoints.gaussian as gaussc
-from functools import partial
-from sklearn.datasets import fetch_openml
-from itertools import product
 
 """
 %%%%%%%%%%%%%%%%%%%%%%% Classes to store results %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

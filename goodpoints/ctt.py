@@ -614,7 +614,7 @@ class TestResults:
       statistic_values: scalar test statistic computed on original data
       threshold_values: if original data test statistic > threshold, 
         test rejects null; otherwise, test accepts null
-      rejects: 1 if the null is rejected; 0 otherwise
+      rejects: rejection probability in [0,1]
       total_times: total time taken to run test
       fname: file name storing a saved copy of this object
     """
@@ -698,6 +698,8 @@ class AggregatedTestResults:
       rejects: 1 if the null is rejected; 0 otherwise
       total_times: total time taken to run test
       fname: file name storing a saved copy of this object
+      rejects_median: the rejection probability of the median heuristic test, assuming
+        the final bandwidth in bw corresponds to the median heuristic bandwidth
     """
     
     def __init__(self, name, all_estimator_values, total_time, bw, weights_vec, B=299, B_2=200, B_3=20, alpha=0.05):
@@ -779,6 +781,7 @@ class AggregatedTestResults:
         """Set threshold values of the single test for each bandwidth;
         used to compute the median bandwidth test
         """
+        self.alpha = alpha
         for bandwidth in self.bw:
             threshold_position = np.ceil((1-alpha)*(self.B+1)).astype('int')
             # Note: we include -1 because indices go from 0 to B instead of 1 to B+1
@@ -833,13 +836,33 @@ class AggregatedTestResults:
         pickle.dump(self, open(self.fname, 'wb'))
         
     def set_reject_median(self):
-        """Checks whether the median bandwidth single tests rejects
+        """Checks whether the median heuristic bandwidth single tests rejects
+
+        Note: Assumes last bandwidth in self.bw corresponds to the median
+        heuristic bandwidth.
         """
         n_bandwidths = self.bw.shape[0]
         last_bw = self.bw[n_bandwidths-1]
-        if self.statistic_values[last_bw] > self.threshold_values[last_bw]:
+        stat_val = self.statistic_values[last_bw]
+        thresh_val = self.threshold_values[last_bw]
+        if stat_val > thresh_val:
+            # Always reject
             self.rejects_median = 1
+        elif stat_val == thresh_val:
+            est_vals = self.estimator_values[last_bw]
+            B_plus_1 = est_vals.shape[0]
+            thresh_index = np.ceil((1-self.alpha)*B_plus_1).astype('int')-1
+            # Count the number of values > threshold
+            num_greater = (est_vals[thresh_index+1:] >
+                           thresh_val).sum()
+            # Count the number of values < threshold
+            num_less = (est_vals[:thresh_index-1] <
+                        thresh_val).sum()
+            # Reject a particular fraction of the time to ensure test has level alpha
+            self.rejects_median = (B_plus_1*self.alpha - num_greater)/(
+                B_plus_1 - num_greater - num_less)
         else:
+            # Never reject
             self.rejects_median = 0
             
 class GroupResults:

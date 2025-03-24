@@ -1,16 +1,5 @@
 import numpy as np
-import time
-import math
-import os
-import argparse
-import pickle
-import scipy
-from goodpoints import kt
-from goodpoints import compress
 from goodpoints import ctt
-from functools import partial
-from sklearn.datasets import fetch_openml
-import itertools
 from itertools import product
 import util_classes
 import util_sqMMD_estimators
@@ -557,9 +546,9 @@ if __name__ == '__main__':
     rng = np.random.default_rng(10)
     lam_computation_samples = np.minimum(args.n,512)
     [X1, X2] = util_sampling.generate_samples(args, rng)
-    lam = util_sqMMD_estimators.median_criterion(X1[:lam_computation_samples,:],X2[:lam_computation_samples,:]) 
+    lam = util_sqMMD_estimators.median_criterion(X1[:lam_computation_samples,:],X2[:lam_computation_samples,:])
     print(f'lambda: {lam}')
-
+    
     if args.aggregated:
         run_aggregated_test()
     else:

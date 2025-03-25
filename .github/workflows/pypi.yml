@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.runs-on }}
     strategy:
       matrix:
-        os: [ linux-intel, linux-arm, macOS-intel, macOS-arm ]
+        os: [ macOS-arm ]
         include:
           - archs: auto
             platform: auto
@@ -77,5 +77,3 @@ jobs:
           merge-multiple: true
 
       - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          # To test: repository-url: https://test.pypi.org/legacy/

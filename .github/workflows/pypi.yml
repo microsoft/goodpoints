@@ -29,6 +29,7 @@ jobs:
           name: dist
           path: dist/*
   pypi-publish:
+    needs: build
     name: Publish to PyPI
     runs-on: ubuntu-latest
     environment:
@@ -42,7 +43,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           # unpacks artifacts into dist/
-          pattern: dist
+          name: dist
           path: dist
       - name: Publish package distribution to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

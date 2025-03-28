@@ -13,7 +13,7 @@ import pylab
 import util_classes
 import util_tests
 
-plt.style.use('seaborn-white')
+plt.style.use('seaborn-v0_8-white')
 
 def plot_line(rejection_rate, rejection_rate_upper, rejection_rate_lower, times, labels, legend_text, marker, markersize, color, linestyle, xytext, log_time_scale, small_times):
     if log_time_scale:

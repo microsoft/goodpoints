@@ -20,7 +20,7 @@ For **Debiased Distribution Compression**, JAX and additional dependencies are r
 The primary kernel thinning function is `thin` in the `kt` module:
 ```python
 from goodpoints import kt
-coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=False, 
+coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K=True, 
                   meanK=None, unique=False, verbose=False)
     """Returns kernel thinning coreset of size floor(n/2^m) as row indices into X
     
@@ -43,26 +43,16 @@ coreset = kt.thin(X, m, split_kernel, swap_kernel, delta=0.5, seed=None, store_K
         if True print that info
     """
 ```
-For example uses, please refer to [examples/kt/run_kt_experiment.ipynb](examples/kt/run_kt_experiment.ipynb).
+> [!TIP]
+> Choosing `store_K=True` is equivalent to running the faster but more memory-intensive `kt.thin_K` Cython implementation,
+while `store_K=False` uses the slower Python implementation `kt.thin_X`.
+See [examples/kt/run_kt_experiment.ipynb](examples/kt/run_kt_experiment.ipynb) for example uses.
+> 
+> A more efficient JAX implementation with GPU and CPU support is also available in [`goodpoints.jax.kt.kt`](goodpoints/jax/kt.py).
 
-The primary Compress++ function is `compresspp` in the `compress` module:
-```python
-from goodpoints import compress
-coreset = compress.compresspp(X, halve, thin, g)
-    """Returns Compress++(g) coreset of size sqrt(n) as row indices into X
 
-    Args: 
-        X: Input sequence of sample points with shape (n, d)
-        halve: Function that takes in an (n', d) numpy array Y and returns 
-          floor(n'/2) distinct row indices into Y, identifying a halved coreset
-        thin: Function that takes in an (2^g sqrt(n'), d) numpy array Y and returns
-          sqrt(n') row indices into Y, identifying a thinned coreset
-        g: Oversampling factor
-    """
-```
-For example uses, please refer to [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py).
 
-A more efficient convenience function is available when one wants to run Compress++ to speed up kernel thinning:
+The primary function for speeding up kernel thinning with Compress++ is the Cython-based `compresspp_kt` function in the `compress` module: 
 ```python
 from goodpoints import compress
 coreset = compress.compresspp_kt(X, kernel_type, g=g, mean0=mean0)
@@ -77,6 +67,31 @@ coreset = compress.compresspp_kt(X, kernel_type, g=g, mean0=mean0)
         is useful when the kernel has expectation zero under a target measure.
     """
 ```
+> [!TIP]
+> A more efficient JAX implementation with GPU and CPU support is also available in [`goodpoints.jax.compress.kt_compresspp`](goodpoints/jax/compress.py).
+> 
+> See also [Thinformer](https://github.com/microsoft/thinformer) for a PyTorch implementation of Compress++ applied to kernel halving with GPU and CPU support.
+
+To speed up a generic halving algorithm with Compress++, we also provide the `compresspp` function in the `compress` module:
+```python
+from goodpoints import compress
+coreset = compress.compresspp(X, halve, thin, g)
+    """Returns Compress++(g) coreset of size sqrt(n) as row indices into X
+
+    Args: 
+        X: Input sequence of sample points with shape (n, d)
+        halve: Function that takes in an (n', d) numpy array Y and returns 
+          floor(n'/2) distinct row indices into Y, identifying a halved coreset
+        thin: Function that takes in an (2^g sqrt(n'), d) numpy array Y and returns
+          sqrt(n') row indices into Y, identifying a thinned coreset
+        g: Oversampling factor
+    """
+```
+> [!TIP]
+> See [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py) for example uses
+> 
+> A more efficient JAX implementation with GPU and CPU support is also available in [`goodpoints.jax.compress.compresspp`](goodpoints/jax/compress.py).
+
 
 The primary Compress Then Test function is `ctt` in the `ctt` module:
 ```python

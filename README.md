@@ -51,8 +51,8 @@ See [examples/kt/run_kt_experiment.ipynb](examples/kt/run_kt_experiment.ipynb) f
 > A more efficient JAX implementation with GPU and CPU support is also available in [`goodpoints.jax.kt.kt`](goodpoints/jax/kt.py).
 
 
-
-The primary function for speeding up kernel thinning with Compress++ is the Cython-based `compresspp_kt` function in the `compress` module: 
+---
+The primary function for speeding up kernel thinning with Compress++ is the `compresspp_kt` function in the `compress` module: 
 ```python
 from goodpoints import compress
 coreset = compress.compresspp_kt(X, kernel_type, g=g, mean0=mean0)
@@ -72,6 +72,7 @@ coreset = compress.compresspp_kt(X, kernel_type, g=g, mean0=mean0)
 > 
 > See also [Thinformer](https://github.com/microsoft/thinformer) for a PyTorch implementation of Compress++ applied to kernel halving with GPU and CPU support.
 
+---
 To speed up a generic halving algorithm with Compress++, we also provide the `compresspp` function in the `compress` module:
 ```python
 from goodpoints import compress
@@ -88,11 +89,11 @@ coreset = compress.compresspp(X, halve, thin, g)
     """
 ```
 > [!TIP]
-> See [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py) for example uses
+> See [examples/compress/construct_compresspp_coresets.py](examples/compress/construct_compresspp_coresets.py) for example uses.
 > 
 > A more efficient JAX implementation with GPU and CPU support is also available in [`goodpoints.jax.compress.compresspp`](goodpoints/jax/compress.py).
 
-
+---
 The primary Compress Then Test function is `ctt` in the `ctt` module:
 ```python
 from goodpoints import ctt
@@ -119,8 +120,10 @@ test_results = ctt.ctt(X1, X2, g)
     Returns: TestResults object.
     """
 ```
-For example uses, please refer to [examples/mmd_test/test.py](examples/mmd_test/test.py).
+> [!TIP]
+> See [examples/mmd_test/test.py](examples/mmd_test/test.py) for example uses.
 
+***
 The primary Debiased Distribution Compression functions are in the `jax.dtc` module, including:
 - Stein Kernel Thinning (`skt`) and Low-rank Stein Kernel Thinning (`lskt`) for equal-weighted coresets
 - Stein Recombination (`sr`) and Low-rank Stein Recombination (`lsr`) for simplex-weighted coresets

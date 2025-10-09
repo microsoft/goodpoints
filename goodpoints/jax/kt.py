@@ -214,7 +214,7 @@ def kernel_swap(kernel, points, coresets, rng_gen,
                                        mode='mean-zero')
                 if not mean_zero:
                     # Adjust the MMD to be against all points.
-                    next_mmd += -2 * K_mean[improved_coreset].mean()
+                    next_mmd += -2 * K_mean[next_coreset].mean()
                 if next_mmd < cur_mmd:
                     coreset = np.copy(next_coreset)
                     cur_mmd = next_mmd

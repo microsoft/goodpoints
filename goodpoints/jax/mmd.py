@@ -53,16 +53,6 @@ def compute_mmd_impl(kernel, points1, points2, w1, w2,
             'full' computes, in addition to trunc,
                 sum_{i,j} k(x'_i, x'_j) w'_i w'_j.
     '''
-    n1 = points1.length
-    pad1 = (batch_size - n1 % batch_size) % batch_size
-    points1 = points1.pad(pad1)
-    w1 = jnp.concatenate([w1, jnp.zeros([pad1])], 0)
-    if mode != 'mean-zero':
-        n2 = points2.length
-        pad2 = (batch_size - n2 % batch_size) % batch_size
-        points2 = points2.pad(pad2)
-        w2 = jnp.concatenate([w2, jnp.zeros([pad2])], 0)
-
     res = (w1 * compute_K_mean(kernel, points1, points1, w1,
                                batch_size=batch_size)).sum()
     if mode != 'mean-zero':
@@ -96,6 +86,7 @@ def compute_K_mean(kernel, points1, points2, w2,
     pad2 = (batch_size - n2 % batch_size) % batch_size
     points2 = points2.pad(pad2)
     w2 = jnp.concatenate([w2, jnp.zeros([pad2])], 0)
+    n2 = points2.length
 
     def loop_body(k, args):
         i = k * batch_size

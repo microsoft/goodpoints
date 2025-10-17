@@ -41,7 +41,7 @@ def kt(kernel, points, w, rng_gen, *,
     coresets = [seq[coreset] for coreset in coresets]
     logging.info('KT-swap improvement...')
     coreset = kernel_swap(kernel, points, coresets,
-                          rng_gen, mean_zero=True)
+                          rng_gen, mean_zero=True, inplace=True)
     return coreset
 
 
@@ -174,7 +174,8 @@ def kernel_swap(kernel, points, coresets, rng_gen,
                 num_repeat=1,
                 random_swap_order=False,
                 baseline=True,
-                mean_zero=True):
+                mean_zero=True,
+                inplace=False):
     '''
     First choose the coreset that has the smallest MMD among all given
     corests, and then greedily swap points from the coreset to minimize MMD,
@@ -192,6 +193,8 @@ def kernel_swap(kernel, points, coresets, rng_gen,
         mean_zero:
             If True, the kernel is assumed to have zero mean in P and the swap
             is to minimize the MMD to P.
+        inplace:
+            If True, input coresets may be modified in place.
     Returns:
         (m,) a numpy array of indices of the improved coreset.
     '''
@@ -205,7 +208,6 @@ def kernel_swap(kernel, points, coresets, rng_gen,
 
     def select_best_coreset(coresets):
         # Select the best coreset.
-        coreset = np.copy(coresets[0])
         if len(coresets) > 1:
             cur_mmd = np.inf
             for next_coreset in coresets:
@@ -216,8 +218,10 @@ def kernel_swap(kernel, points, coresets, rng_gen,
                     # Adjust the MMD to be against all points.
                     next_mmd += -2 * K_mean[next_coreset].mean()
                 if next_mmd < cur_mmd:
-                    coreset = np.copy(next_coreset)
+                    coreset = next_coreset if inplace else np.copy(next_coreset)
                     cur_mmd = next_mmd
+        else:
+            coreset = coresets[0] if inplace else np.copy(coresets[0])
         return coreset
 
     candidates = [select_best_coreset(coresets)]

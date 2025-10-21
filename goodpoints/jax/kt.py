@@ -169,7 +169,6 @@ def kernel_halve_impl(kernel, points, delta, rand,
 
     return mask0
 
-
 def kernel_swap(kernel, points, coresets, rng_gen,
                 num_repeat=1,
                 random_swap_order=False,
@@ -226,61 +225,70 @@ def kernel_swap(kernel, points, coresets, rng_gen,
 
     candidates = [select_best_coreset(coresets)]
     if baseline:
+        m = coresets[0].shape[0]
         if mean_zero:
             baseline_coreset = stein_thin(
-                kernel, points, coresets[0].shape[0])[1]
+                kernel, points, m)[1]
         else:
             baseline_coreset = np.linspace(
-                0, n-1, coresets[0].shape[0], dtype=int)
+                0, n-1, m, dtype=int)
         candidates.append(baseline_coreset)
 
-    K_diag = kernel(points, points)
+    if random_swap_order:
+        # Save rng state to use same random orderings for each candidate
+        rng_state = rng_gen.bit_generator.state
+
     # Next use KT-swap to improve each candidate coreset.
     for i, coreset in enumerate(candidates):
+        # Set RNG state
+        if random_swap_order:
+            rng_gen.bit_generator.state = rng_state
+        # Precompute sufficient statistic for identifying
+        # best swap
+        suff_stat = swap_sufficient_stat(kernel, points, coreset, K_mean)
         m = coreset.shape[0]
         for r in range(num_repeat):
             if random_swap_order:
                 order = rng_gen.permutation(m)
                 coreset = coreset[order]
-            coreset = kernel_swap_impl(
-                kernel, points, K_diag, coreset, K_mean)
-            coreset = np.sort(np.array(coreset)) # retain order
+            coreset, suff_stat = kernel_swap_impl(
+                kernel, points, coreset, suff_stat)
+            coreset = coreset.sort() 
         candidates[i] = coreset
 
     return select_best_coreset(candidates)
 
 
 @partial(jax.jit, static_argnames=('kernel',))
-def kernel_swap_impl(kernel, points, K_diag, coreset, K_mean):
-    m = coreset.shape[0]
-    def loop_body(i, args):
+def swap_sufficient_stat(kernel, points, coreset, K_mean):
+    def loop_body(l, args):
         E, = args
-        j = coreset[i]
+        j = coreset[l]
         E = E + kernel(points[j], points)
         return (E,)
 
-    def loop_body2(i, args):
-        E, coreset = args
-        j = coreset[i]
-
-        # First, remove j.
-        E -= kernel(points[j], points)
-        # Next, find the best replacement for j. Be careful with scaling.
-        diff = (K_diag + 2 * E) / m - 2 * K_mean
-        # diff[i] is the change in MMD after adding in i.
-        k = jnp.argmin(diff)
-        E += kernel(points[k], points)
-        coreset = coreset.at[i].set(k)
-        return (E, coreset)
-
+    m = coreset.shape[0]
     n = points.length
-    E = jax.lax.fori_loop(0, coreset.shape[0], loop_body,
-                          (jnp.zeros((n,)),))[0]
-    # E[i] = sum_{j} k(x_i, x'_j) for x'_j in coreset.
-    _, coreset = jax.lax.fori_loop(0, coreset.shape[0], loop_body2,
-                                   (E, coreset))
-    return coreset
+    return (kernel(points, points) / 2 - m * K_mean + 
+            jax.lax.fori_loop(0, m, loop_body, (jnp.zeros((n,)),))[0])
 
+
+@partial(jax.jit, static_argnames=('kernel',))
+def kernel_swap_impl(kernel, points, coreset, suff_stat):
+    def loop_body2(i, args):
+        coreset, suff_stat = args
+        # Remove influence of current coreset point
+        j = coreset[i]
+        suff_stat = suff_stat - kernel(points[j], points)
+        # suff_stat[k] is the relative change in MMD^2 after 
+        # adding point k to coreset
+        k = jnp.argmin(suff_stat)
+        suff_stat += kernel(points[k], points)
+        coreset = coreset.at[i].set(k)
+        return (coreset, suff_stat)
+
+    return jax.lax.fori_loop(0, coreset.shape[0], loop_body2, 
+                             (coreset, suff_stat))
 
 def get_swap_params(sigma_sqr, b_sqr, delta):
     b = jnp.sqrt(b_sqr)

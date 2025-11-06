@@ -15,9 +15,9 @@ from goodpoints.jax.rounding import stratified_round,\
 
 
 def kt_compresspp(kernel, points, w, rng_gen, *,
-                  inflate_size,
-                  delta=0.5,
-                  g=4):
+                  inflate_size, delta=0.5, g=4,
+                  num_repeat=1, random_swap_order=False,
+                  baseline=True):
     '''
     KT-Compress++ algorithm from Li et al. 2024 targeting a mean-zero kernel
     and a weighted input.
@@ -29,6 +29,11 @@ def kt_compresspp(kernel, points, w, rng_gen, *,
         rng_gen: Random number generator state.
         inflate_size: Multiplicity, a power of 4.
         delta: Failure probability.
+        num_repeat: Number of times to repeat the greedy swapping.
+        random_swap_order: If True, randomly permute the order of swapping.
+        baseline:
+            If True, add in either Stein thinning baseline (if mean-zero) or
+            i.i.d. baseline otherwise.
     Returns:
         A numpy array of indices of the coreset of length sqrt(inflate_size).
     '''
@@ -41,7 +46,10 @@ def kt_compresspp(kernel, points, w, rng_gen, *,
     coresets = [seq[coreset] for coreset in coresets]
     logging.info('KT-swap improvement...')
     coreset = kernel_swap(kernel, points, coresets,
-                          rng_gen, mean_zero=True)
+                          rng_gen, mean_zero=True, inplace=True,
+                          num_repeat=num_repeat,
+                          random_swap_order=random_swap_order,
+                          baseline=baseline)
     return coreset
 
 

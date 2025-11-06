@@ -15,7 +15,9 @@ from goodpoints.jax.rounding import stratified_round, log2_ceil
 
 
 def kt(kernel, points, w, rng_gen, *,
-       inflate_size, out_size, delta=0.5):
+       inflate_size, out_size, delta=0.5,
+       num_repeat=1, random_swap_order=False,
+       baseline=True):
     '''
     Kernel thinning algorithm from Li et al. (2024) targeting a mean-zero
     kernel and a weighted input.
@@ -29,6 +31,11 @@ def kt(kernel, points, w, rng_gen, *,
             Multiplicity with inflate_size/out_size being a power of 2.
         out_size: Output size.
         delta: Failure probability.
+        num_repeat: Number of times to repeat the greedy swapping.
+        random_swap_order: If True, randomly permute the order of swapping.
+        baseline:
+            If True, add in either Stein thinning baseline (if mean-zero) or
+            i.i.d. baseline otherwise.
     Returns:
         A numpy array of indices of the coreset of length out_size.
     '''
@@ -41,7 +48,10 @@ def kt(kernel, points, w, rng_gen, *,
     coresets = [seq[coreset] for coreset in coresets]
     logging.info('KT-swap improvement...')
     coreset = kernel_swap(kernel, points, coresets,
-                          rng_gen, mean_zero=True, inplace=True)
+                          rng_gen, mean_zero=True, inplace=True,
+                          num_repeat=num_repeat,
+                          random_swap_order=random_swap_order,
+                          baseline=baseline)
     return coreset
 
 

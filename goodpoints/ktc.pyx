@@ -47,6 +47,7 @@ cdef void thin_K(const double[:, :] K,
                   const double delta,
                   const bint unique,
                   const bint mean0,
+                  const bint skip_swap,
                   double[:] aux_double_mem,
                   long[:,:] aux_long_mem,
                   long[:] output_indices) noexcept nogil:
@@ -70,6 +71,7 @@ cdef void thin_K(const double[:, :] K,
         performed. This is useful when the kernel is already centered with 
         respect to a target distribution P as then KT-SWAP will minimize 
         MMD to P.
+      skip_swap: Skip KT-SWAP step?
       aux_double_mem: scratch space array of size 2n; will be modified in place
       aux_long_mem: scratch space array of size (2, n//2); will be modified in place
       output_indices: array of size n//2, would store the output row indices into K
@@ -109,46 +111,47 @@ cdef void thin_K(const double[:, :] K,
 
     cdef double[:] meanK
     cdef const double[:] K_i
-    if mean0:
-        # No recentering is necessary: make meanK None
-        meanK = None
-    else:
-        # Recentering is necessary: 
-        # compute the row means of K (i.e., meanK = K.mean(axis=1))
-        # for best_K and refine_K and store in first half of aux_double_mem
-        meanK = aux_double_mem[:n]
-        for i in range(n):
-            meanK[i] = 0
-            K_i = K[i]
-            for j in range(n):
-                meanK[i] += K_i[j]
-            meanK[i] /= n
-        
-    # Store standard thinning coreset in output_indices
-    # np.flip(np.arange(n-1,-1,-(n//coreset_size)))
-    # = np.flip(np.arange(n-1,-1,-2))
-    j = coreset_size-1
-    i = n-1
-    while j>=0:
-        output_indices[j] = i
-        i -= 2
-        j -= 1
-    
-    # Select the better of halve_K coreset (in coresets[0])
-    # and standard thinning coreset (in output_indices)
-    # Check whether standard thinning coreset was selected
-    # by examining whether coreset points to same memory as output indices
-    if &(best_K(K, coresets, meanK, output_indices)[0]) == &output_indices[0]:
-        # Select higher-quality standard thinning coreset as coreset
-        coreset = output_indices
-        # Store complement of coreset into non_coreset
-        # Note: non-coreset is the complement of coreset only when n is even
+    if not skip_swap:
+        if mean0:
+            # No recentering is necessary: make meanK None
+            meanK = None
+        else:
+            # Recentering is necessary: 
+            # compute the row means of K (i.e., meanK = K.mean(axis=1))
+            # for best_K and refine_K and store in first half of aux_double_mem
+            meanK = aux_double_mem[:n]
+            for i in range(n):
+                meanK[i] = 0
+                K_i = K[i]
+                for j in range(n):
+                    meanK[i] += K_i[j]
+                meanK[i] /= n
+            
+        # Store standard thinning coreset in output_indices
+        # np.flip(np.arange(n-1,-1,-(n//coreset_size)))
+        # = np.flip(np.arange(n-1,-1,-2))
         j = coreset_size-1
-        i = n-2
+        i = n-1
         while j>=0:
-            non_coreset[j] = i
+            output_indices[j] = i
             i -= 2
             j -= 1
+        
+        # Select the better of halve_K coreset (in coresets[0])
+        # and standard thinning coreset (in output_indices)
+        # Check whether standard thinning coreset was selected
+        # by examining whether coreset points to same memory as output indices
+        if &(best_K(K, coresets, meanK, output_indices)[0]) == &output_indices[0]:
+            # Select higher-quality standard thinning coreset as coreset
+            coreset = output_indices
+            # Store complement of coreset into non_coreset
+            # Note: non-coreset is the complement of coreset only when n is even
+            j = coreset_size-1
+            i = n-2
+            while j>=0:
+                non_coreset[j] = i
+                i -= 2
+                j -= 1
     
     ########## refine_K ##########
     
@@ -156,10 +159,11 @@ cdef void thin_K(const double[:, :] K,
     # one per input point for ktc.refine_K
     cdef double[:] sufficient_stat = aux_double_mem[n:]
    
-    # Refine quality of coreset
-    refine_K(K, coreset, meanK, 
-             sufficient_stat, unique, 
-             non_coreset)
+    if not skip_swap:
+        # Refine quality of coreset
+        refine_K(K, coreset, meanK, 
+                sufficient_stat, unique, 
+                non_coreset)
     
     ########## symmetrize ##########
     # Flip a fair coin to decide whether to return coreset or non_coreset

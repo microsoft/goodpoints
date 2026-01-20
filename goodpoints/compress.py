@@ -102,7 +102,7 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
         kt.thin_K(K, K, m, delta=thin_delta, seed=thin_seed, mean0=mean0)]
 
 def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1, 
-                delta=0.5, seed=None):
+                delta=0.5, skip_swap=False, seed=None):
     """Returns coreset of size min(n', 2^g sqrt(n' * num_bins)) as row indices 
     into X. Here n' = num_bins times the largest power of 4 less than or equal 
     to n / num_bins. The coreset is obtained by dividing the rows of X into 
@@ -127,6 +127,7 @@ def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1,
       lam_sqd: Double array of squared Gaussian kernel bandwidths to compute
         the sum-of-Gaussians kernel k(x,y) = sum_j exp(-||x-y||_2^2/lam_sqd[j])
       delta: Failure probability parameter for kernel thinning
+      skip_swap: Skip KT-SWAP step in thin_K?
       seed: Nonnegative integer seed to initialize a random number 
         generator or None to set no seed
     """
@@ -154,8 +155,8 @@ def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1,
     if seed is None:
         # Pass negative seed value to indicate no seed should be set
         seed = -1
-    compressc.compress(X, g, num_bins, kernel_type, k_params, delta, seed, 
-                       output_indices)
+    compressc.compress(X, g, num_bins, kernel_type, k_params, delta, 
+                       skip_swap, seed, output_indices)
     if input_indices is None:
         return output_indices
     else:

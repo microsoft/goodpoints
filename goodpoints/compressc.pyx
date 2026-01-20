@@ -5,7 +5,7 @@ Cython implementation of the Compress algorithm of
   Distribution Compression in Near-linear Time.
   https://arxiv.org/pdf/2111.07941.pdf
   
-with symmetrized target kernel halving.
+with symmetrized target kernel thinning.
 """
 
 import numpy as np
@@ -130,6 +130,7 @@ cdef void halve(const double[:,:] X,
                 const kernel_diag kdiag, 
                 const double[:] k_params,
                 const double halve_prob,
+                const bint skip_swap,
                 double[:,:] K,
                 double[:] aux_double_mem,
                 long[:,:] aux_long_mem,
@@ -151,6 +152,7 @@ cdef void halve(const double[:,:] X,
         Gaussian kernels or smoothness parameters for sum of Sobolev)
       halve_prob: Runs thin_K with failure probability parameter 
         delta = halve_prob * n^2
+      skip_swap: Skip KT-SWAP step in thin_K?
       K: shape (2*n_out, 2*n_out) array for storing a kernel matrix; will be
         modified in place
       aux_double_mem: scratch space of length 4*n_out; will be modified in place
@@ -170,7 +172,7 @@ cdef void halve(const double[:,:] X,
     # indices into the input_indices array, and not into X
     cdef bint unique = True
     cdef bint mean0 = False
-    thin_K(K, rng, delta, unique, mean0, 
+    thin_K(K, rng, delta, unique, mean0, skip_swap,
            aux_double_mem, aux_long_mem, output_indices)
 
     # Return the selected coreset as indices into X
@@ -190,6 +192,7 @@ cdef void _compress(const double[:, :] X,
                     const kernel_diag kdiag, 
                     const double[:] k_params,
                     const double halve_prob,
+                    const bint skip_swap,
                     bitgen_t* halve_rng,
                     double[:,:] K,
                     double[:] aux_double_mem,
@@ -214,7 +217,8 @@ cdef void _compress(const double[:, :] X,
       k_params: array of kernel parameters (e.g., squared bandwidths for sum of
         Gaussian kernels or smoothness parameters for sum of Sobolev)
       halve_prob: Halving probability parameter accepted by halve
-      halve_seed: Pointer to an RNG for halving algorithm
+      skip_swap: Skip KT-SWAP step in thin_K?
+      halve_rng: Pointer to an RNG for halving algorithm
       K: array for storing a kernel matrix; will be modified in place;
         has shape (2*n_out, 2*n_out) 
       aux_double_mem: scratch space of; will be modified in place;
@@ -233,7 +237,7 @@ cdef void _compress(const double[:, :] X,
     if n == base_size:
         # Call Halve directly on the input_indices
         halve(X, input_indices, halve_rng, k, kdiag, k_params, halve_prob, 
-              K, aux_double_mem, aux_long_mem, output_indices)
+              skip_swap, K, aux_double_mem, aux_long_mem, output_indices)
         return
 
     # Divide input indices into four blocks, call compress on each
@@ -264,7 +268,7 @@ cdef void _compress(const double[:, :] X,
         _compress(
             X, 
             input_indices[child_in_start:child_in_start+child_in_len],
-            base_size, k, kdiag, k_params, halve_prob, 
+            base_size, k, kdiag, k_params, halve_prob, skip_swap, 
             halve_rng,
             child_K,
             child_aux_double_mem,
@@ -277,7 +281,7 @@ cdef void _compress(const double[:, :] X,
     
     # Run halving on child_output_indices
     halve(X, child_output_indices, halve_rng, k, kdiag, k_params, halve_prob, 
-          K, aux_double_mem, aux_long_mem, output_indices)
+          skip_swap, K, aux_double_mem, aux_long_mem, output_indices)
 
 @cython.boundscheck(False) # turn off bounds-checking for this function
 @cython.wraparound(False)  # turn off negative index wrapping for this function
@@ -289,6 +293,7 @@ cpdef void compress(const double[:, :] X,
                     const char* kernel_type, 
                     const double[:] k_params,
                     const double delta,
+                    const bint skip_swap,
                     const long halve_seed,
                     long[:] output_indices) noexcept nogil:
     """Partitions rows of X consecutively into num_bins bins,
@@ -306,6 +311,7 @@ cpdef void compress(const double[:, :] X,
         b"sobolev" for (sum of) Sobolev kernels with smoothness params
       k_params: Array of kernel parameters
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
+      skip_swap: Skip KT-SWAP step in thin_K?
       halve_seed: Nonnegative integer seed to initialize a random number 
         generator or a negative integer indicating no seed should be set
       output_indices: Array for storing the output coreset indexing the rows 
@@ -395,7 +401,7 @@ cpdef void compress(const double[:, :] X,
          
         # Run compress algorithm to populate output indices
         _compress(X, input_indices, base_size, 
-                  k, kdiag, k_params, halve_prob, 
+                  k, kdiag, k_params, halve_prob, skip_swap,
                   halve_rng, 
                   K, aux_double_mem, aux_long_mem,
                   intermediate_indices,

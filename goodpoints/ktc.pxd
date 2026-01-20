@@ -7,6 +7,7 @@ cdef void thin_K(const double[:, :] K,
                  const double delta,
                  const bint unique,
                  const bint mean0,
+                 const bint skip_swap,
                  double[:] aux_double_mem,
                  long[:,:] aux_long_mem,
                  long[:] output_indices) noexcept nogil

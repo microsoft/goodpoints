@@ -9,11 +9,10 @@ Implementations of the Compress, Compress++, and Symmetrize metaprocedures of
 import numpy as np
 from numpy import zeros, where
 from numpy.random import default_rng, SeedSequence
-import math
 from goodpoints import compressc, kt
 
 def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
-                  delta=0.5, seed=None, mean0=False):
+                  delta=0.5, skip_swap=False, seed=None, mean0=False):
     """Returns coreset of size sqrt(n') as row indices into X. 
     Here n' = the largest power of 4 less than or equal to n. 
     The coreset is obtained by dividing the rows of X into num_bins 
@@ -36,6 +35,7 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
       g: Oversampling parameter, a nonnegative integer
       num_bins: Number of bins, a power of 4 <= n
       delta: Failure probability parameter for kernel thinning
+      skip_swap: Skip KT-SWAP step of KT?
       seed: Nonnegative integer seed to initialize a random number 
         generator or None to set no seed
       mean0: If False, final KT call minimizes MMD to empirical measure over 
@@ -51,7 +51,7 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
         input_indices = np.linspace(n-1, 0, nearest_pow_four, dtype=int)[::-1]
         return input_indices[ compresspp_kt(
             X[input_indices], kernel_type, k_params=k_params, g=g, 
-            num_bins=num_bins, delta=delta, seed=seed, mean0=mean0) ]
+            num_bins=num_bins, delta=delta, skip_swap=skip_swap, seed=seed, mean0=mean0) ]
     
     # Record target number of halving rounds performed by Thin
     # Note: (num_bins.bit_length() - 1)//2 = log2(sqrt(num_bins))
@@ -67,7 +67,18 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
         # Compute compress_coreset kernel matrix in place
         compressc.compute_K(X, np.arange(n, dtype=int), kernel_type, k_params, 
                             K)
-        return kt.thin_K(K, K, log2_sqrtn, delta=delta, seed=seed, mean0=mean0)
+        if skip_swap:
+            # Generate one seed for the split step and one to select final coreset
+            seed_seqs = SeedSequence(seed).spawn(2)
+            split_seed = seed_seqs[0].generate_state(1)[0]
+            choice_seed = seed_seqs[1].generate_state(1)[0]
+            # Run KT-SPLIT to get candidate coresets
+            coresets = kt.split_K(K, log2_sqrtn, delta=delta, seed=split_seed)
+            # Select one candidate to return uniformly at random to ensure unbiasedness
+            rng = default_rng(choice_seed)
+            return rng.choice(coresets)
+        else:
+            return kt.thin_K(K, K, log2_sqrtn, delta=delta, seed=seed, mean0=mean0)
         
     # Otherwise, divide failure probability between Compress and Thin rounds
     thin_frac = m / (m + (2**m) * (log2_sqrtn - m))
@@ -76,8 +87,8 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
     
     # Generate one seed for the Compress step and one for the final Thin step
     seed_seqs = SeedSequence(seed).spawn(2)
-    compress_seed = seed_seqs[0].generate_state(1)
-    thin_seed = seed_seqs[1].generate_state(1)
+    compress_seed = seed_seqs[0].generate_state(1)[0]
+    thin_seed = seed_seqs[1].generate_state(1)[0]
     
     #
     # Compress step
@@ -86,7 +97,7 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
     # 2^g sqrt(n / num_bins) for each bin, and concatenate bin coresets
     compress_coreset = compress_kt(
         X, kernel_type, g=g, num_bins=num_bins, k_params=k_params, 
-        delta=compress_delta, seed=compress_seed)
+        delta=compress_delta, skip_swap=skip_swap, seed=compress_seed)
     
     #
     # Thin step
@@ -98,8 +109,19 @@ def compresspp_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=4,
     compressc.compute_K(X, compress_coreset, kernel_type, k_params, K)
     # Use target kt.thin to reduce coreset size from 2^g * sqrt(n * num_bins)
     # to sqrt(n)
-    return compress_coreset[ 
-        kt.thin_K(K, K, m, delta=thin_delta, seed=thin_seed, mean0=mean0)]
+    if skip_swap:
+        # Generate one seed for the split step and one to select final coreset
+        seed_seqs = SeedSequence(thin_seed).spawn(2)
+        split_seed = seed_seqs[0].generate_state(1)[0]
+        choice_seed = seed_seqs[1].generate_state(1)[0]
+        # Run KT-SPLIT to get candidate coresets
+        coresets = kt.split_K(K, m, delta=thin_delta, seed=split_seed)
+        # Select one candidate to return uniformly at random to ensure unbiasedness
+        rng = default_rng(choice_seed)
+        return compress_coreset[rng.choice(coresets)]
+    else:
+        return compress_coreset[ 
+            kt.thin_K(K, K, m, delta=thin_delta, seed=thin_seed, mean0=mean0)]
 
 def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1, 
                 delta=0.5, skip_swap=False, seed=None):
@@ -127,7 +149,7 @@ def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1,
       lam_sqd: Double array of squared Gaussian kernel bandwidths to compute
         the sum-of-Gaussians kernel k(x,y) = sum_j exp(-||x-y||_2^2/lam_sqd[j])
       delta: Failure probability parameter for kernel thinning
-      skip_swap: Skip KT-SWAP step in thin_K?
+      skip_swap: Skip KT-SWAP step of KT?
       seed: Nonnegative integer seed to initialize a random number 
         generator or None to set no seed
     """

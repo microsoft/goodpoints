@@ -380,15 +380,13 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
     # Return coresets of size floor(n/2^m)
     return(coresets[m])
 
-def split_K(K, m, diagK=None, delta=0.5, seed=None):
+def split_K(K, m, delta=0.5, seed=None):
     """Returns 2^m KT-SPLIT coresets of size floor(n/2^m) as a 2D array.
     Uses order n^2 memory, as a kernel matrix is maintained in memory.
     
     Args:
       K: Matrix of KT-SPLIT kernel evaluations with shape (n, n)
       m: Number of halving rounds
-      diagK: None or array of length n with diagK[ii] = K[ii,ii];
-        used to speed up computation when not None
       delta: Run KT-SPLIT with constant failure probabilities delta_i = delta/n
       seed: Random seed to set prior to generation; if None,
         no seed will be set

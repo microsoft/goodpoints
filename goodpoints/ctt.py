@@ -81,23 +81,23 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
     # Prepare integer random number generator seeds for each dataset
     stat_rng = np.random.default_rng(statistic_seed)
     stat_ss = stat_rng.bit_generator._seed_seq.spawn(2)
-    stat_seed1 = stat_ss[0].generate_state(1)
-    stat_seed2 = stat_ss[1].generate_state(1)
-        
+    stat_seed1 = int(stat_ss[0].generate_state(1)[0])
+    stat_seed2 = int(stat_ss[1].generate_state(1)[0])
+
     # Identify coreset for each compression bin
     kernel_type = b"gaussian"
     hatX1_indices = compress.compress_kt(
-        X1, kernel_type, k_params = lam_sqd, g = g, num_bins = num_bins1, 
+        X1, kernel_type, k_params = lam_sqd, g = g, num_bins = num_bins1,
         delta = delta, seed = stat_seed1)
     hatX2_indices = compress.compress_kt(
-        X2, kernel_type, k_params = lam_sqd, g = g, num_bins = num_bins2, 
+        X2, kernel_type, k_params = lam_sqd, g = g, num_bins = num_bins2,
         delta = delta, seed = stat_seed2)
 
     # Compute sum of Gaussian kernel evaluations between each pair
     # of coresets
     avg_matrix = np.empty((num_bins_total,num_bins_total))
     gaussianc.sum_gaussian_kernel_by_bin(X1[hatX1_indices], X2[hatX2_indices],
-                                         lam_sqd, avg_matrix)
+                                         lam**2, avg_matrix)
     # Normalize each sum by the number of kernel evaluations
     avg_matrix /= (bin_size**2)
 
@@ -376,8 +376,8 @@ def lrctt(X1,X2,g,r,B=39,a=0,s=16,lam=1.,use_permutations=False,
     # Prepare integer random number generator seeds for each dataset
     stat_rng = np.random.default_rng(statistic_seed)
     stat_ss = stat_rng.bit_generator._seed_seq.spawn(2)
-    stat_seed1 = stat_ss[0].generate_state(1)
-    stat_seed2 = stat_ss[1].generate_state(1)
+    stat_seed1 = int(stat_ss[0].generate_state(1)[0])
+    stat_seed2 = int(stat_ss[1].generate_state(1)[0])
 
     # Identify coreset for each compression bin
     if out_thresh1 == n1:
@@ -386,8 +386,8 @@ def lrctt(X1,X2,g,r,B=39,a=0,s=16,lam=1.,use_permutations=False,
     else:
         kernel_type = b"gaussian"
         hatX1_indices = compress.compress_kt(
-            X1, kernel_type, g = g, num_bins = comp_bins1, 
-            k_params = lam_sqd, delta = delta, 
+            X1, kernel_type, g = g, num_bins = comp_bins1,
+            k_params = lam_sqd, delta = delta,
             seed = stat_seed1)
         hatX1 = X1[hatX1_indices]
     if out_thresh2 == n2:
@@ -533,11 +533,11 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
     if same_compression:
         # For all bandwidths jointly, identify coreset for each compression bin
         hatX1_indices = compress.compress_kt(
-            X1, kernel_type, g = g, num_bins = num_bins1, k_params = lam_sqd, 
-            delta = delta, seed = stat_ss[0].generate_state(1))
+            X1, kernel_type, g = g, num_bins = num_bins1, k_params = lam_sqd,
+            delta = delta, seed = int(stat_ss[0].generate_state(1)[0]))
         hatX2_indices = compress.compress_kt(
-            X2, kernel_type, g = g, num_bins = num_bins2, k_params = lam_sqd, 
-            delta = delta, seed = stat_ss[1].generate_state(1))
+            X2, kernel_type, g = g, num_bins = num_bins2, k_params = lam_sqd,
+            delta = delta, seed = int(stat_ss[1].generate_state(1)[0]))
 
         # For each bandwidth, compute sum of Gaussian kernel evaluations
         # between each pair of coresets
@@ -548,13 +548,13 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
         for k, bw in enumerate(lam):
             # Identify coreset for each compression bin
             hatX1_indices = compress.compress_kt(
-                X1, kernel_type, g = g, num_bins = num_bins1, 
-                k_params = lam_sqd[k:k+1], 
-                delta = delta, seed = stat_ss[2*k].generate_state(1))
+                X1, kernel_type, g = g, num_bins = num_bins1,
+                k_params = lam_sqd[k:k+1],
+                delta = delta, seed = int(stat_ss[2*k].generate_state(1)[0]))
             hatX2_indices = compress.compress_kt(
-                X2, kernel_type, g = g, num_bins = num_bins2, 
-                k_params = lam_sqd[k:k+1], 
-                delta = delta, seed = stat_ss[2*k+1].generate_state(1))
+                X2, kernel_type, g = g, num_bins = num_bins2,
+                k_params = lam_sqd[k:k+1],
+                delta = delta, seed = int(stat_ss[2*k+1].generate_state(1)[0]))
 
             # Compute sum of Gaussian kernel evaluations
             # between each pair of coresets

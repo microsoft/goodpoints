@@ -1,5 +1,4 @@
-from setuptools import setup, find_packages
-from distutils.extension import Extension
+from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 from os.path import join, dirname
 import numpy

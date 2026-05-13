@@ -66,7 +66,8 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
         raise ValueError(f"Unsupported kernel name {kernel}")
     
     # Store squared bandwidth in an array
-    lam_sqd = np.array([lam**2])
+    lam_sqd_scalar = lam**2
+    lam_sqd = np.array([lam_sqd_scalar])
     
     # Number of sample poins
     n1 = X1.shape[0]
@@ -97,7 +98,7 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
     # of coresets
     avg_matrix = np.empty((num_bins_total,num_bins_total))
     gaussianc.sum_gaussian_kernel_by_bin(X1[hatX1_indices], X2[hatX2_indices],
-                                         lam**2, avg_matrix)
+                                         lam_sqd_scalar, avg_matrix)
     # Normalize each sum by the number of kernel evaluations
     avg_matrix /= (bin_size**2)
 

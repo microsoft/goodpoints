@@ -656,7 +656,7 @@ class TestResults:
             num_greater = (self.estimator_values[thresh_index+1:] > 
                            self.threshold_values).sum()
             # Count the number of values < threshold
-            num_less = (self.estimator_values[:thresh_index-1] < 
+            num_less = (self.estimator_values[:thresh_index] <
                          self.threshold_values).sum()
             # Reject a particular fraction of the time to ensure test has level alpha
             self.rejects = (B_plus_1*alpha - num_greater)/(
@@ -857,7 +857,7 @@ class AggregatedTestResults:
             num_greater = (est_vals[thresh_index+1:] >
                            thresh_val).sum()
             # Count the number of values < threshold
-            num_less = (est_vals[:thresh_index-1] <
+            num_less = (est_vals[:thresh_index] <
                         thresh_val).sum()
             # Reject a particular fraction of the time to ensure test has level alpha
             self.rejects_median = (B_plus_1*self.alpha - num_greater)/(

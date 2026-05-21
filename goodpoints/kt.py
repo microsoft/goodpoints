@@ -317,14 +317,15 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                 # Number of points in parent_coreset
                 parent_idx = (i+1) // num_parent_coresets
                 # Get last two points from the parent coreset
+                point1, point2 = parent_coreset[parent_idx-2], parent_coreset[parent_idx-1]
                 # newaxis ensures array dimensions are appropriate for kernel function
-                point1, point2 = parent_coreset[parent_idx-2, newaxis], parent_coreset[parent_idx-1, newaxis]
+                point1_arr, point2_arr = point1[newaxis], point2[newaxis]
                 # Compute kernel(x1, x2)
-                K12 = k(point1,point2)
+                K12 = np.asarray(k(point1_arr, point2_arr)).item()
 
                 # Use adaptive failure threshold
                 # Compute b^2 = ||f||^2 = ||k(x1,.) - k(x2,.)||_k^2
-                b_sqd = diagK[point2] + diagK[point1] - 2*K12
+                b_sqd = float(diagK[point2] + diagK[point1] - 2*K12)
                 # Update threshold for halving parent coreset
                 # a = max(b sig sqrt(j_log_multiplier), b^2)
                 thresh = max(np.sqrt(sig_sqd[j][j2]*b_sqd*j_log_multiplier), b_sqd)
@@ -358,8 +359,8 @@ def split_X(X, m, kernel, delta=0.5, seed=None, verbose=False):
                     # Subtract 2 * inner product with all points in left child coreset:
                     # - 2 * sum_{l < child_idx} <k(coreset[j][l],.), k(x1, .) - k(x2, .)> 
                     child_points = left_child_coreset[:child_idx]
-                    point1_kernel_sum = np.sum(k(point1,child_points))
-                    point2_kernel_sum = np.sum(k(point2,child_points))
+                    point1_kernel_sum = np.sum(k(point1_arr,child_points))
+                    point2_kernel_sum = np.sum(k(point2_arr,child_points))
                     alpha -= 2*(point1_kernel_sum - point2_kernel_sum)
                 else:
                     point1_kernel_sum = 0

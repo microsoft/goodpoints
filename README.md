@@ -211,6 +211,10 @@ See [examples/mmd_test/README.md](examples/mmd_test/README.md).
 ```
 See [examples/debias/README.md](examples/debias/README.md).
 
+## Testing
+
+See [tests/README.md](tests/README.md) for quick start, fixtures, and contribution guidelines.
+
 ## Contributing
 
 This project welcomes contributions and suggestions.  Most contributions require you to agree to a

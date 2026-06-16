@@ -27,22 +27,19 @@ extensions = [
         "goodpoints.cttc", [join("goodpoints","cttc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
-        library_dirs=[lib_path_npyrandom,lib_path_npymath],
-        libraries=['npyrandom','npymath','m'],
+        libraries=['m'],
     ),
     Extension(
         "goodpoints.gaussianc", [join("goodpoints","gaussianc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
-        library_dirs=[lib_path_npyrandom,lib_path_npymath],
-        libraries=['npyrandom','npymath','m'],
+        libraries=['m'],
     ),
     Extension(
         "goodpoints.sobolevc", [join("goodpoints","sobolevc.pyx")],
         extra_compile_args=['-O3'],
         language="c", include_dirs=[numpy.get_include()],
-        library_dirs=[lib_path_npyrandom,lib_path_npymath],
-        libraries=['npyrandom','npymath','m'],
+        libraries=['m'],
     ),
 ]
 

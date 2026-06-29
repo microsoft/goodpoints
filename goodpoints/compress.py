@@ -156,8 +156,8 @@ def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1,
     # If the n // num_bins is not a power of 4, thin down to the nearest 
     # power of 4 using standard thinning (i.e., by retaining every t-th index)
     n = X.shape[0]
-    n_per_bin = n // num_bins
-    nearest_pow_four = largest_power_of_four(n_per_bin)
+    n_per_bin = n / num_bins
+    nearest_pow_four = largest_power_of_four(int(n_per_bin))
     if nearest_pow_four != n_per_bin:
         # Thin backwards from the end
         new_n = nearest_pow_four*num_bins

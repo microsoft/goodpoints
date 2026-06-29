@@ -130,7 +130,7 @@ class TestSetRejectMedian:
     """Tests for set_reject_median() method."""
 
     def test_set_reject_median_attribute_exists(self):
-        """AggregatedTestResults should have rejects_median attribute."""
+        """AggregatedCttResult should have rejects_median attribute."""
         rng = np.random.default_rng(42)
         X1 = rng.standard_normal((256, 2))
         X2 = rng.standard_normal((256, 2))

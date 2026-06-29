@@ -194,8 +194,8 @@ class TestRejectionEdgeCases:
         assert hasattr(result, "rejects")
 
 
-class TestResultsObjectEdgeCases:
-    """Tests for edge cases in TestResults and AggregatedTestResults."""
+class TestCttResultObjectEdgeCases:
+    """Tests for edge cases in CttResult and AggregatedCttResult."""
 
     def test_results_alpha_attribute(self):
         """Test that results objects have alpha attribute."""
@@ -220,7 +220,7 @@ class TestResultsObjectEdgeCases:
         assert result.alpha == alpha
 
     def test_aggregated_results_has_bandwidth_array(self):
-        """Test that AggregatedTestResults has bw attribute."""
+        """Test that AggregatedCttResult has bw attribute."""
         rng = np.random.default_rng(42)
         X1 = rng.standard_normal((128, 2))
         X2 = rng.standard_normal((128, 2))

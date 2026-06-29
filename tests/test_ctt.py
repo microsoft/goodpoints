@@ -2,7 +2,7 @@ import numpy as np
 import pickle
 import tempfile
 import pytest
-from goodpoints.ctt import ctt, rff, lrctt, actt, kernel_features, TestResults
+from goodpoints.ctt import ctt, rff, lrctt, actt, kernel_features, CttResult
 
 
 class TestCtt:
@@ -10,7 +10,7 @@ class TestCtt:
         X1 = rng.standard_normal((64, 2))
         X2 = rng.standard_normal((64, 2))
         result = ctt(X1, X2, g=0, B=9, s=4, null_seed=0, statistic_seed=1)
-        assert isinstance(result, TestResults)
+        assert isinstance(result, CttResult)
 
     def test_rejects_in_range(self, rng):
         X1 = rng.standard_normal((64, 2))
@@ -52,7 +52,7 @@ class TestRff:
         X1 = rng.standard_normal((64, 2))
         X2 = rng.standard_normal((64, 2))
         result = rff(X1, X2, r=50, B=9, null_seed=0, statistic_seed=1)
-        assert isinstance(result, TestResults)
+        assert isinstance(result, CttResult)
 
     def test_rejects_in_range(self, rng):
         X1 = rng.standard_normal((64, 2))
@@ -88,7 +88,7 @@ class TestLrctt:
         X1 = rng.standard_normal((256, 2))
         X2 = rng.standard_normal((256, 2))
         result = lrctt(X1, X2, g=0, r=50, B=9, s=4, null_seed=0, statistic_seed=1)
-        assert result is None or isinstance(result, TestResults)
+        assert result is None or isinstance(result, CttResult)
 
     def test_deterministic(self):
         rng = np.random.default_rng(42)
@@ -125,9 +125,9 @@ class TestActt:
             null_seed=0,
             statistic_seed=1,
         )
-        from goodpoints.ctt import AggregatedTestResults
+        from goodpoints.ctt import AggregatedCttResult
 
-        assert isinstance(result, AggregatedTestResults)
+        assert isinstance(result, AggregatedCttResult)
 
     def test_rejects_is_binary(self):
         rng = np.random.default_rng(42)
@@ -223,7 +223,7 @@ class TestKernelFeatures:
         assert features.shape == (8, 20)
 
 
-class TestTestResultsSaveLoad:
+class TestCttResultSaveLoad:
     def test_roundtrip(self, rng):
         X1 = rng.standard_normal((64, 2))
         X2 = rng.standard_normal((64, 2))

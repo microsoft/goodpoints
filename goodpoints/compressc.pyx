@@ -323,6 +323,8 @@ cpdef void compress(const double[:, :] X,
     cdef long n = X.shape[0]
     # Number of input points per bin
     cdef long bin_size = n // num_bins
+    # Number of output indices
+    cdef long out_size = output_indices.shape[0]
     
     # Smallest input size for which Compress(g) output coreset 
     # is strictly smaller than input
@@ -333,12 +335,12 @@ cpdef void compress(const double[:, :] X,
     # output size >= n 
     cdef long i
     if bin_size < base_size:
-        for i in range(n):
+        for i in range(out_size):
             output_indices[i] = i
         return
 
     # Size of the coreset outputted for each bin
-    cdef long bin_out_size = output_indices.shape[0] // num_bins
+    cdef long bin_out_size = out_size // num_bins
     # Allocate auxiliary memory for largest instance of Halve
     cdef long max_halve_size = 2 * bin_out_size
     cdef double *K_ptr = <double *> malloc(max_halve_size*max_halve_size * sizeof(double))

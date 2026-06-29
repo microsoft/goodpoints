@@ -29,8 +29,6 @@ from libc.stdio cimport printf
 # ".shape" on a typed Numpy array use this API. 
 np.import_array()
 from numpy.random cimport bitgen_t
-from numpy.random.c_distributions cimport (random_standard_uniform,
-      random_standard_uniform_fill)
 from libc.stdlib cimport malloc, free
 
 
@@ -85,7 +83,7 @@ cdef void thin_K(const double[:, :] K,
             opt_halve4_mean0_K(K, output_indices)
         else:
             opt_halve4_K(K,
-                         random_standard_uniform(rng),
+                         rng.next_double(rng.state),
                          output_indices) 
         return
 
@@ -95,7 +93,8 @@ cdef void thin_K(const double[:, :] K,
     
     # Generate uniform random numbers to be used by halve_K
     cdef double[:] uniforms = aux_double_mem[:coreset_size]
-    random_standard_uniform_fill(rng, coreset_size, &uniforms[0])
+    for i in range(coreset_size):
+        uniforms[i] = rng.next_double(rng.state)
         
     # Divide input into two coresets, stored in coresets
     cdef long[:, :] coresets = aux_long_mem
@@ -167,7 +166,7 @@ cdef void thin_K(const double[:, :] K,
     
     ########## symmetrize ##########
     # Flip a fair coin to decide whether to return coreset or non_coreset
-    if random_standard_uniform(rng) > 0.5:
+    if rng.next_double(rng.state) > 0.5:
         coreset = non_coreset
     
     # Copy selected coreset into output_indices

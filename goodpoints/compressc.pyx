@@ -332,8 +332,9 @@ cpdef void compress(const double[:, :] X,
     # equivalent to saying return all input indices whenever the target
     # output size >= n 
     cdef long i
+    cdef long out_size = output_indices.shape[0]
     if bin_size < base_size:
-        for i in range(n):
+        for i in range(out_size):
             output_indices[i] = i
         return
 

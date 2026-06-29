@@ -167,18 +167,26 @@ def compress_kt(X, kernel_type, k_params=np.ones(1), g=0, num_bins=1,
     else:
         input_indices = None
     
-    # Allocate array for storing coreset indices
-    coreset_size = min(n, int(np.sqrt(n * num_bins)*(2**g)))    
-    output_indices = np.empty(coreset_size, dtype=np.int64)
-    
-    # Run Compress on each bin
-    if np.isscalar(k_params):
-        k_params = np.array([k_params], dtype=np.double)
-    if seed is None:
-        # Pass negative seed value to indicate no seed should be set
-        seed = -1
-    compressc.compress(X, g, num_bins, kernel_type, k_params, delta, 
-                       skip_swap, seed, output_indices)
+    # Check if compression is worthwhile: if each bin is smaller than
+    # the base size 4^(g+1), compression cannot reduce the input, so
+    # return all input indices directly without calling compressc.compress
+    bin_size = n // num_bins
+    base_size = 4**(g+1)
+    if bin_size < base_size:
+        output_indices = np.arange(n, dtype=np.int64)
+    else:
+        # Allocate array for storing coreset indices
+        coreset_size = min(n, int(np.sqrt(n * num_bins)*(2**g)))
+        output_indices = np.empty(coreset_size, dtype=np.int64)
+
+        # Run Compress on each bin
+        if np.isscalar(k_params):
+            k_params = np.array([k_params], dtype=np.double)
+        if seed is None:
+            # Pass negative seed value to indicate no seed should be set
+            seed = -1
+        compressc.compress(X, g, num_bins, kernel_type, k_params, delta,
+                           skip_swap, seed, output_indices)
     if input_indices is None:
         return output_indices
     else:

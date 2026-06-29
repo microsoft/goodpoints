@@ -57,7 +57,7 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
       alpha: test level
       delta: KT-Compress failure probability
       
-    Returns: TestResults object.
+    Returns: CttResult object.
     """
     # Measure runtime
     time_0 = time.time()
@@ -132,7 +132,7 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
     total_time = time_1 - time_0
     
     # Return test results
-    return TestResults('ctt', estimator_values, total_time, alpha=alpha)
+    return CttResult('ctt', estimator_values, total_time, alpha=alpha)
 
 def kernel_features(X1,X2,r,lam=1.,kernel="gauss",feat_type="rff",
                     seed=None,bin_size=1):
@@ -182,7 +182,7 @@ def rff(X1,X2,r,B=39,lam=1.,kernel="gauss",
     """Random Fourier Features two-sample test with sample sequences X1 and X2.
     
     Runs RFF two-sample test on the sample sequences
-    X1 and X2 and returns the results as a TestResults object.
+    X1 and X2 and returns the results as a CttResult object.
     
     Args:
       X1: 2D array of size (n1,d)
@@ -200,7 +200,7 @@ def rff(X1,X2,r,B=39,lam=1.,kernel="gauss",
         numpy.random.default_rng
       alpha: test level
 
-    Returns: TestResults object.
+    Returns: CttResult object.
     """
     # Measure runtime
     time_0 = time.time()
@@ -262,7 +262,7 @@ def rff(X1,X2,r,B=39,lam=1.,kernel="gauss",
     total_time = time_1 - time_0
     
     # Return test results
-    return TestResults('rff', estimator_values, total_time, alpha=alpha)
+    return CttResult('rff', estimator_values, total_time, alpha=alpha)
 
 def lrctt(X1,X2,g,r,B=39,a=0,s=16,lam=1.,use_permutations=False,
           kernel="gauss",feat_type="rff",null_seed=None,statistic_seed=None,
@@ -300,7 +300,7 @@ def lrctt(X1,X2,g,r,B=39,a=0,s=16,lam=1.,use_permutations=False,
       alpha: test level
       delta: KT-Compress failure probability
 
-    Returns: TestResults object.
+    Returns: CttResult object.
     """
     # Measure runtime
     time_0 = time.time()
@@ -463,7 +463,7 @@ def lrctt(X1,X2,g,r,B=39,a=0,s=16,lam=1.,use_permutations=False,
     total_time = time_1 - time_0
 
     # Return test results
-    return TestResults(f'lrctt-{feat_type}', estimator_values, total_time, alpha=alpha)
+    return CttResult(f'lrctt-{feat_type}', estimator_values, total_time, alpha=alpha)
     
 def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([1.]),kernel="gauss",null_seed=None,
          statistic_seed=None,same_compression=True,alpha=0.05):
@@ -492,7 +492,7 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
       same_compression: if True, use the sum of kernels to do compression,
         else compress with each kernel separately
         
-    Returns: AggregatedTestResults object.
+    Returns: AggregatedCttResult object.
     """
     # Measure runtime
     time_0 = time.time()
@@ -597,13 +597,13 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
     total_time = time_1 - time_0
         
     # Return test results
-    return AggregatedTestResults(f'actt', all_estimator_values, total_time, lam, weights, alpha=alpha, B=B, B_2=B_2, B_3=B_3)
+    return AggregatedCttResult(f'actt', all_estimator_values, total_time, lam, weights, alpha=alpha, B=B, B_2=B_2, B_3=B_3)
          
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Test Results %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 
-class TestResults:
+class CttResult:
     """Results of a test based on exchangeable replicates under the null.
 
     Attributes:
@@ -677,7 +677,7 @@ class TestResults:
             self.fname = fname
         pickle.dump(self, open(self.fname, 'wb'))
         
-class AggregatedTestResults:
+class AggregatedCttResult:
     """Results of an aggregated test based on exchangeable replicates under the null.
 
     Attributes:

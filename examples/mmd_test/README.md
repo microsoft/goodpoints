@@ -1,5 +1,9 @@
 # Compress Then Test Experiments
 
+## Downloading data
+
+Prior to running the HIGGS experiments, please download the HIGGS_TST.pckl data from https://github.com/fengliu90/DK-for-TST.
+
 ## Running experiments locally
 
 #### Single-bandwidth tests

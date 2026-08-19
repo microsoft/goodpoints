@@ -34,8 +34,6 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
         statistic_seed=None,alpha=.05,delta=0.5):
     """Compress Then Test two-sample test with sample sequences X1 and X2
     and auxiliary kernel k' = target kernel k.
-        
-    Note: Assumes that bin_size = max(1, (n1+n2)//(2s)) evenly divides n1 and n2
     
     Args:
       X1: 2D array of size (n1,d)
@@ -72,12 +70,16 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
     # Number of sample poins
     n1 = X1.shape[0]
     n2 = X2.shape[0]
-    
+
     # Number of KT-Compress bins per dataset
     num_bins_total = min(2*s, n1+n2)
-    bin_size = (n1+n2) // num_bins_total
+    bin_size = min((n1+n2) // num_bins_total, n1, n2)
     num_bins1 = n1 // bin_size
-    num_bins2 = num_bins_total - num_bins1
+    num_bins2 = n2 // bin_size
+    # Recalculate total bin count and truncate data to ensure every bin has the same size
+    num_bins_total = num_bins1 + num_bins2
+    X1 = X1[:num_bins1 * bin_size]
+    X2 = X2[:num_bins2 * bin_size]
 
     # Prepare integer random number generator seeds for each dataset
     stat_rng = np.random.default_rng(statistic_seed)
@@ -469,9 +471,7 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
          statistic_seed=None,same_compression=True,alpha=0.05):
     """Aggregated Compress Then Test two-sample test with sample sequences 
     X1 and X2 and auxiliary kernel k' = target kernel k.
-    
-    Note: Assumes that bin_size = max(1, (n1+n2)//(2s)) evenly divides n1 and n2
-    
+        
     Args:
       X1: 2D array of size (n1,d)
       X2: 2D array of size (n2,d)
@@ -510,12 +510,16 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
     # Number of sample poins
     n1 = X1.shape[0]
     n2 = X2.shape[0]
-    
-    # Number of KT-Compress bins per dataset
+
+    # Target number of KT-Compress bins per dataset
     num_bins_total = min(2*s, n1+n2)
-    bin_size = (n1+n2) // num_bins_total
+    bin_size = min((n1+n2) // num_bins_total, n1, n2)
     num_bins1 = n1 // bin_size
-    num_bins2 = num_bins_total - num_bins1
+    num_bins2 = n2 // bin_size
+    # Recalculate total bin count and truncate data to ensure every bin has the same size
+    num_bins_total = num_bins1 + num_bins2
+    X1 = X1[:num_bins1 * bin_size]
+    X2 = X2[:num_bins2 * bin_size]
 
     # Prepare integer random number generator seeds
     stat_rng = np.random.default_rng(statistic_seed)
@@ -563,7 +567,7 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
                 X1[hatX1_indices], X2[hatX2_indices], bw**2, avg_matrix[:,:,k])
 
     # Normalize avg_matrix by the number of kernel evaluations
-    avg_matrix /= (bin_size**2) 
+    avg_matrix /= (bin_size**2)
 
     # Initialize generator for generating permutations
     test_rng = np.random.default_rng(null_seed)

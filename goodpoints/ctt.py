@@ -34,8 +34,6 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
         statistic_seed=None,alpha=.05,delta=0.5):
     """Compress Then Test two-sample test with sample sequences X1 and X2
     and auxiliary kernel k' = target kernel k.
-        
-    Note: Assumes that bin_size = max(1, (n1+n2)//(2s)) evenly divides n1 and n2
     
     Args:
       X1: 2D array of size (n1,d)
@@ -75,13 +73,12 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
 
     # Number of KT-Compress bins per dataset
     num_bins_total = min(2*s, n1+n2)
-    bin_size = (n1+n2) // num_bins_total
+    bin_size = min((n1+n2) // num_bins_total, n1, n2)
     num_bins1 = n1 // bin_size
-    num_bins2 = num_bins_total - num_bins1
 
     # Recalculate num_bins2 from actual data size and truncate to fit evenly
     # This ensures bin_size divides both n1 and n2, maintaining statistical exchangeability
-    num_bins2 = max(1, n2 // bin_size)
+    num_bins2 = n2 // bin_size
     num_bins_total = num_bins1 + num_bins2
     X1 = X1[:num_bins1 * bin_size]
     X2 = X2[:num_bins2 * bin_size]

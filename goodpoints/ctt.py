@@ -72,12 +72,19 @@ def ctt(X1,X2,g,B=39,s=16,lam=1.,kernel="gauss",null_seed=None,
     # Number of sample poins
     n1 = X1.shape[0]
     n2 = X2.shape[0]
-    
+
     # Number of KT-Compress bins per dataset
     num_bins_total = min(2*s, n1+n2)
     bin_size = (n1+n2) // num_bins_total
     num_bins1 = n1 // bin_size
     num_bins2 = num_bins_total - num_bins1
+
+    # Recalculate num_bins2 from actual data size and truncate to fit evenly
+    # This ensures bin_size divides both n1 and n2, maintaining statistical exchangeability
+    num_bins2 = max(1, n2 // bin_size)
+    num_bins_total = num_bins1 + num_bins2
+    X1 = X1[:num_bins1 * bin_size]
+    X2 = X2[:num_bins2 * bin_size]
 
     # Prepare integer random number generator seeds for each dataset
     stat_rng = np.random.default_rng(statistic_seed)
@@ -510,12 +517,19 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
     # Number of sample poins
     n1 = X1.shape[0]
     n2 = X2.shape[0]
-    
+
     # Number of KT-Compress bins per dataset
     num_bins_total = min(2*s, n1+n2)
     bin_size = (n1+n2) // num_bins_total
     num_bins1 = n1 // bin_size
     num_bins2 = num_bins_total - num_bins1
+
+    # Recalculate num_bins2 from actual data size and truncate to fit evenly
+    # This ensures bin_size divides both n1 and n2, maintaining statistical exchangeability
+    num_bins2 = max(1, n2 // bin_size)
+    num_bins_total = num_bins1 + num_bins2
+    X1 = X1[:num_bins1 * bin_size]
+    X2 = X2[:num_bins2 * bin_size]
 
     # Prepare integer random number generator seeds
     stat_rng = np.random.default_rng(statistic_seed)
@@ -563,7 +577,7 @@ def actt(X1,X2,g,B=299,B_2=200,B_3=20,s=16,lam=np.array([1.]),weights=np.array([
                 X1[hatX1_indices], X2[hatX2_indices], bw**2, avg_matrix[:,:,k])
 
     # Normalize avg_matrix by the number of kernel evaluations
-    avg_matrix /= (bin_size**2) 
+    avg_matrix /= (bin_size**2)
 
     # Initialize generator for generating permutations
     test_rng = np.random.default_rng(null_seed)
